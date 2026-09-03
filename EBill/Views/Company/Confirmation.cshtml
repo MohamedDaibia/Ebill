@@ -1,0 +1,40 @@
+@model EBill.Models.Company
+@{
+    ViewData["Title"] = "Registration Successful";
+}
+
+<div class="alert alert-success">Company registered successfully.</div>
+
+<div class="card" style="max-width: 640px;">
+    <div class="card-body">
+        @if (!string.IsNullOrEmpty(Model.LogoPath))
+        {
+            <img src="@Url.Content(Model.LogoPath)" alt="@Model.CompanyName logo" class="mb-3 border rounded" style="max-height:100px;" />
+        }
+        <h4 class="card-title">@Model.CompanyName</h4>
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8">@Model.Email</dd>
+
+            <dt class="col-sm-4">Phone</dt>
+            <dd class="col-sm-8">@Model.PhoneNumber</dd>
+
+            <dt class="col-sm-4">Address</dt>
+            <dd class="col-sm-8">@Model.Address</dd>
+
+            <dt class="col-sm-4">State / District</dt>
+            <dd class="col-sm-8">@Model.State, @Model.District</dd>
+
+            <dt class="col-sm-4">Country</dt>
+            <dd class="col-sm-8">@Model.Country</dd>
+
+            <dt class="col-sm-4">Pincode</dt>
+            <dd class="col-sm-8">@Model.Pincode</dd>
+
+            <dt class="col-sm-4">GSTIN</dt>
+            <dd class="col-sm-8">@Model.Gstin</dd>
+        </dl>
+    </div>
+</div>
+
+<a asp-controller="Company" asp-action="Register" class="btn btn-outline-secondary mt-3">Register Another</a>

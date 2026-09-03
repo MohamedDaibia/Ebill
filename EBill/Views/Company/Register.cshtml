@@ -1,0 +1,17 @@
+@model EBill.Models.Company
+@{
+    ViewData["Title"] = "Company Registration";
+}
+
+<h1>Company Registration</h1>
+<p class="text-muted">Enter your company details. These will appear on every invoice you generate.</p>
+
+<div class="row">
+    <div class="col-md-8">
+        @await Html.PartialAsync("_CompanyRegisterForm", Model)
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

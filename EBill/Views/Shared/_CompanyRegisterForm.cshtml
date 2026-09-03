@@ -1,0 +1,88 @@
+@model EBill.Models.Company
+
+<form asp-controller="Company" asp-action="Register" method="post" enctype="multipart/form-data">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="CompanyName" class="form-label"></label>
+        <input asp-for="CompanyName" class="form-control" placeholder="e.g. Acme Traders Pvt. Ltd." />
+        <span asp-validation-for="CompanyName" class="text-danger"></span>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" placeholder="billing@company.com" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="PhoneNumber" class="form-label"></label>
+            <input asp-for="PhoneNumber" class="form-control" placeholder="+91 98765 43210" />
+            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Address" class="form-label"></label>
+        <textarea asp-for="Address" class="form-control" rows="2" placeholder="Building, street, area"></textarea>
+        <span asp-validation-for="Address" class="text-danger"></span>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label asp-for="State" class="form-label"></label>
+            <input asp-for="State" class="form-control" />
+            <span asp-validation-for="State" class="text-danger"></span>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label asp-for="District" class="form-label"></label>
+            <input asp-for="District" class="form-control" />
+            <span asp-validation-for="District" class="text-danger"></span>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label asp-for="Country" class="form-label"></label>
+            <input asp-for="Country" class="form-control" />
+            <span asp-validation-for="Country" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label asp-for="Pincode" class="form-label"></label>
+            <input asp-for="Pincode" class="form-control" placeholder="e.g. 560001" maxlength="6" />
+            <span asp-validation-for="Pincode" class="text-danger"></span>
+        </div>
+        <div class="col-md-8 mb-3">
+            <label asp-for="Gstin" class="form-label"></label>
+            <input asp-for="Gstin" class="form-control text-uppercase" placeholder="e.g. 22AAAAA0000A1Z5" maxlength="15" />
+            <span asp-validation-for="Gstin" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="LogoFile" class="form-label"></label>
+        <input asp-for="LogoFile" type="file" class="form-control" accept=".jpg,.jpeg,.png,.gif,.svg" onchange="previewLogo(this)" />
+        <span asp-validation-for="LogoFile" class="text-danger"></span>
+        <div class="form-text">JPG, PNG, GIF, or SVG. Max 2 MB.</div>
+        <img id="logoPreview" src="#" alt="Logo preview" class="mt-2 border rounded d-none" style="max-height:120px;" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Register Company</button>
+</form>
+
+<script>
+    function previewLogo(input) {
+        const preview = document.getElementById('logoPreview');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+            };
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            preview.classList.add('d-none');
+            preview.src = '#';
+        }
+    }
+</script>
