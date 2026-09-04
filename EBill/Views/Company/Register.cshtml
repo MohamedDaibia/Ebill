@@ -3,12 +3,18 @@
     ViewData["Title"] = "Company Registration";
 }
 
-<h1>Company Registration</h1>
-<p class="text-muted">Enter your company details. These will appear on every invoice you generate.</p>
-
 <div class="row">
     <div class="col-md-8">
-        @await Html.PartialAsync("_CompanyRegisterForm", Model)
+        <div class="page-heading">
+            <span class="icon-badge icon-badge--green">&#127970;</span>
+            <div>
+                <h1 class="mb-0">Company Registration</h1>
+                <p class="text-muted mb-0">Enter your company details. These will appear on every invoice you generate.</p>
+            </div>
+        </div>
+        <div class="form-card mt-3">
+            @await Html.PartialAsync("_CompanyRegisterForm", Model)
+        </div>
     </div>
 </div>
 

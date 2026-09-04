@@ -1,5 +1,8 @@
+using EBill.Data;
 using EBill.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace EBill.Controllers
 {
@@ -9,10 +12,14 @@ namespace EBill.Controllers
         private const long MaxLogoSizeBytes = 2 * 1024 * 1024; // 2 MB
 
         private readonly IWebHostEnvironment _env;
+        private readonly ApplicationDbContext _db;
+        private readonly IPasswordHasher<Company> _passwordHasher;
 
-        public CompanyController(IWebHostEnvironment env)
+        public CompanyController(IWebHostEnvironment env, ApplicationDbContext db, IPasswordHasher<Company> passwordHasher)
         {
             _env = env;
+            _db = db;
+            _passwordHasher = passwordHasher;
         }
 
         [HttpGet]
@@ -39,6 +46,11 @@ namespace EBill.Controllers
                 }
             }
 
+            if (await _db.Companies.AnyAsync(c => c.Email == model.Email))
+            {
+                ModelState.AddModelError(nameof(model.Email), "A company is already registered with this email address.");
+            }
+
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -60,6 +72,11 @@ namespace EBill.Controllers
 
                 model.LogoPath = $"/uploads/logos/{fileName}";
             }
+
+            model.PasswordHash = _passwordHasher.HashPassword(model, model.Password);
+
+            _db.Companies.Add(model);
+            await _db.SaveChangesAsync();
 
             return View("Confirmation", model);
         }

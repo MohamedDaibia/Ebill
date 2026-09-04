@@ -8,21 +8,32 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/EBill.styles.css" asp-append-version="true" />
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
+            <div class="container-fluid justify-content-between">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">EBill</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="d-flex align-items-center gap-2">
+                        <a class="nav-link text-dark" asp-controller="Invoice" asp-action="Create">Create Invoice</a>
+                        <a class="btn btn-primary" asp-controller="Account" asp-action="Logout">Logout</a>
+                    </div>
+                }
+                else
+                {
+                    <a class="btn btn-primary" asp-area="" asp-controller="Account" asp-action="Login">Login</a>
+                }
             </div>
         </nav>
     </header>
-    <div class="container">
+    <div class="container flex-grow-1">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
+    <footer class="border-top footer text-muted mt-auto">
         <div class="container">
             &copy; 2026 - EBill - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>

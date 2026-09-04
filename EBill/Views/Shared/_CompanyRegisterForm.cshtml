@@ -5,43 +5,62 @@
 
     <div class="mb-3">
         <label asp-for="CompanyName" class="form-label"></label>
-        <input asp-for="CompanyName" class="form-control" placeholder="e.g. Acme Traders Pvt. Ltd." />
+        <input asp-for="CompanyName" class="form-control" placeholder="e.g. Acme Traders Pvt. Ltd." maxlength="200" />
         <span asp-validation-for="CompanyName" class="text-danger"></span>
     </div>
 
     <div class="row">
         <div class="col-md-6 mb-3">
             <label asp-for="Email" class="form-label"></label>
-            <input asp-for="Email" class="form-control" placeholder="billing@company.com" />
+            <input asp-for="Email" class="form-control" placeholder="billing@company.com" maxlength="256" />
             <span asp-validation-for="Email" class="text-danger"></span>
         </div>
         <div class="col-md-6 mb-3">
             <label asp-for="PhoneNumber" class="form-label"></label>
-            <input asp-for="PhoneNumber" class="form-control" placeholder="+91 98765 43210" />
+            <input asp-for="PhoneNumber" class="form-control" placeholder="+91 98765 43210" maxlength="15" />
             <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="Password" class="form-label"></label>
+            <input asp-for="Password" class="form-control" placeholder="At least 8 characters" maxlength="100" />
+            <span asp-validation-for="Password" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="ConfirmPassword" class="form-label"></label>
+            <input asp-for="ConfirmPassword" class="form-control" placeholder="Re-enter password" maxlength="100" />
+            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
         </div>
     </div>
 
     <div class="mb-3">
         <label asp-for="Address" class="form-label"></label>
-        <textarea asp-for="Address" class="form-control" rows="2" placeholder="Building, street, area"></textarea>
+        <textarea asp-for="Address" class="form-control" rows="2" placeholder="Building, street, area" maxlength="500"></textarea>
         <span asp-validation-for="Address" class="text-danger"></span>
     </div>
 
     <div class="row">
         <div class="col-md-4 mb-3">
             <label asp-for="State" class="form-label"></label>
-            <input asp-for="State" class="form-control" />
+            <input asp-for="State" class="form-control" readonly />
             <span asp-validation-for="State" class="text-danger"></span>
         </div>
         <div class="col-md-4 mb-3">
             <label asp-for="District" class="form-label"></label>
-            <input asp-for="District" class="form-control" />
+            <select asp-for="District" class="form-select">
+                <option value="">-- Select District --</option>
+                @foreach (var district in EBill.Models.Company.TamilNaduDistricts)
+                {
+                    <option value="@district">@district</option>
+                }
+            </select>
             <span asp-validation-for="District" class="text-danger"></span>
         </div>
         <div class="col-md-4 mb-3">
             <label asp-for="Country" class="form-label"></label>
-            <input asp-for="Country" class="form-control" />
+            <input asp-for="Country" class="form-control" maxlength="100" />
             <span asp-validation-for="Country" class="text-danger"></span>
         </div>
     </div>

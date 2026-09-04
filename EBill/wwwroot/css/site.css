@@ -1,3 +1,15 @@
+:root {
+  --brand-green: #1f8a53;
+  --brand-green-dark: #14603b;
+  --brand-green-light: #e6f4ec;
+  --brand-orange: #f2782f;
+  --brand-orange-dark: #d9631f;
+  --brand-orange-light: #fdeee3;
+  --brand-white: #ffffff;
+  --brand-ink: #1c2b22;
+  --brand-muted: #5b6b61;
+}
+
 html {
   font-size: 14px;
 }
@@ -8,15 +20,462 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
-}
-
 body {
-  margin-bottom: 60px;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  color: var(--brand-ink);
+  background: linear-gradient(180deg, var(--brand-green-light) 0%, #ffffff 320px);
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--brand-green);
+}
+
+/* Navbar */
+.navbar {
+  background: linear-gradient(90deg, var(--brand-green) 0%, var(--brand-green-dark) 100%) !important;
+  box-shadow: 0 2px 10px rgba(20, 96, 59, 0.25);
+}
+
+.navbar-brand {
+  color: var(--brand-white) !important;
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 0.5px;
+}
+
+.navbar .btn-primary {
+  background-color: var(--brand-orange);
+  border-color: var(--brand-orange);
+  font-weight: 600;
+  padding: 0.5rem 1.5rem;
+  border-radius: 2rem;
+  box-shadow: 0 2px 8px rgba(217, 99, 31, 0.4);
+}
+
+.navbar .btn-primary:hover {
+  background-color: var(--brand-orange-dark);
+  border-color: var(--brand-orange-dark);
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--brand-orange);
+  border-color: var(--brand-orange);
+  font-weight: 600;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+  background-color: var(--brand-orange-dark);
+  border-color: var(--brand-orange-dark);
+}
+
+.btn-outline-secondary {
+  color: var(--brand-green-dark);
+  border-color: var(--brand-green);
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--brand-green);
+  border-color: var(--brand-green);
+  color: var(--brand-white);
+}
+
+/* Page heading */
+.page-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.page-heading .icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  font-size: 1.5rem;
+  color: var(--brand-white);
+}
+
+.icon-badge--green {
+  background: linear-gradient(135deg, var(--brand-green) 0%, var(--brand-green-dark) 100%);
+}
+
+.icon-badge--orange {
+  background: linear-gradient(135deg, var(--brand-orange) 0%, var(--brand-orange-dark) 100%);
+}
+
+/* Form cards */
+.form-card {
+  background: var(--brand-white);
+  border: none;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(20, 96, 59, 0.08);
+  padding: 2rem;
+  border-top: 5px solid var(--brand-green);
+}
+
+.form-card--orange {
+  border-top-color: var(--brand-orange);
+}
+
+.form-card .form-label {
+  font-weight: 600;
+  color: var(--brand-green-dark);
+}
+
+.form-card .form-control,
+.form-card .form-select {
+  border-radius: 0.5rem;
+  border-color: #d7e5dc;
+}
+
+.form-card .form-control[readonly] {
+  background-color: var(--brand-green-light);
+  color: var(--brand-green-dark);
+}
+
+.form-card .form-control:focus,
+.form-card .form-select:focus {
+  border-color: var(--brand-green);
+}
+
+.form-card--orange .form-control:focus,
+.form-card--orange .form-select:focus {
+  border-color: var(--brand-orange);
+}
+
+.form-card--orange .form-label {
+  color: var(--brand-orange-dark);
+}
+
+.form-text {
+  color: var(--brand-muted);
+}
+
+/* Success card */
+.card {
+  border: none;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(20, 96, 59, 0.08);
+}
+
+.alert-success {
+  background-color: var(--brand-green-light);
+  border-color: var(--brand-green);
+  color: var(--brand-green-dark);
+  border-radius: 0.75rem;
+  font-weight: 600;
+}
+
+/* Footer */
+.footer {
+  background: var(--brand-green-dark);
+  color: var(--brand-white) !important;
+  padding: 1rem 0;
+}
+
+.footer a {
+  color: var(--brand-orange-light);
+}
+
+.footer a:hover {
+  color: var(--brand-orange);
+}
+
+/* Add / remove line item controls */
+.btn-add-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--brand-green) 0%, var(--brand-green-dark) 100%);
+  color: var(--brand-white);
+  font-size: 1.5rem;
+  line-height: 1;
+  box-shadow: 0 4px 10px rgba(20, 96, 59, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.btn-add-item:hover {
+  transform: scale(1.08);
+  background: linear-gradient(135deg, var(--brand-green-dark) 0%, var(--brand-green-dark) 100%);
+}
+
+/* Tax rate toggle buttons */
+.tax-rate-btn {
+  flex: 1;
+  padding: 0.6rem 0.5rem;
+  border-radius: 0.5rem;
+  border: 1.5px solid #d7e5dc;
+  background: var(--brand-white);
+  color: var(--brand-ink);
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.tax-rate-btn:hover {
+  border-color: var(--brand-green);
+}
+
+.tax-rate-btn.active {
+  background: linear-gradient(135deg, var(--brand-green) 0%, var(--brand-green-dark) 100%);
+  border-color: var(--brand-green-dark);
+  color: var(--brand-white);
+}
+
+.btn-remove-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 1px solid #f1c3c3;
+  background: #fdecec;
+  color: #c0392b;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.btn-remove-item:hover {
+  background: #c0392b;
+  color: var(--brand-white);
+  border-color: #c0392b;
+}
+
+#itemsTable tbody tr:hover {
+  background-color: var(--brand-green-light);
+}
+
+.amount-cell {
+  font-weight: 600;
+  color: var(--brand-green-dark);
+}
+
+/* Modal */
+.modal-content {
+  border: none;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.modal-header {
+  background: linear-gradient(90deg, var(--brand-green) 0%, var(--brand-green-dark) 100%);
+  color: var(--brand-white);
+}
+
+.modal-header .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Responsive tweaks */
+@media (max-width: 576px) {
+  .navbar-brand {
+    font-size: 1.25rem;
+  }
+
+  .navbar .btn-primary {
+    padding: 0.4rem 1.1rem;
+  }
+
+  .page-heading {
+    gap: 0.6rem;
+  }
+
+  .page-heading .icon-badge {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.15rem;
+    border-radius: 0.6rem;
+  }
+
+  .page-heading h1 {
+    font-size: 1.4rem;
+  }
+
+  .form-card {
+    padding: 1.25rem 1rem;
+    border-radius: 0.75rem;
+  }
+
+  .form-card button[type="submit"] {
+    width: 100%;
+  }
+
+  /* Products page: customer details strip */
+  .customer-details-row .text-uppercase {
+    font-size: 0.68rem;
+  }
+
+  .customer-details-row .fw-semibold {
+    font-size: 0.95rem;
+  }
+
+  /* Products page: line items table */
+  #itemsTable {
+    font-size: 0.82rem;
+  }
+
+  #itemsTable th,
+  #itemsTable td {
+    padding: 0.5rem 0.4rem;
+    white-space: nowrap;
+  }
+
+  .btn-add-item {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 1.25rem;
+  }
+
+  /* Products page: Calculate Tax / View Invoice actions */
+  .product-actions .btn {
+    width: 100%;
+  }
+
+  /* Add Line Item modal */
+  .modal-body {
+    padding: 1rem;
+  }
+
+  #taxRateGroup {
+    flex-wrap: wrap;
+  }
+
+  .tax-rate-btn {
+    min-width: calc(33.333% - 0.5rem);
+  }
+
+  /* Invoice view: line items table */
+  .invoice-items-table {
+    font-size: 0.82rem;
+  }
+
+  .invoice-items-table th,
+  .invoice-items-table td {
+    padding: 0.5rem 0.4rem;
+    white-space: nowrap;
+  }
+
+  /* Invoice view: logo + invoice number/date top row (kept side-by-side on mobile) */
+  .invoice-top-row {
+    gap: 0.6rem !important;
+  }
+
+  .invoice-logo-wrap img {
+    max-height: 56px !important;
+  }
+
+  .invoice-meta-wrap h5 {
+    font-size: 1.05rem;
+  }
+
+  .invoice-meta-wrap p {
+    font-size: 0.78rem;
+  }
+
+  /* Invoice view: Bill To section spacing when stacked under company info */
+  .row.gy-4 .col-md-6.text-md-end {
+    text-align: left !important;
+  }
+
+  /* Invoice view: Amount Paid inline controls */
+  .amount-paid-controls {
+    gap: 0.4rem !important;
+  }
+
+  .amount-paid-controls input#amountPaidInput {
+    width: 72px !important;
+  }
+
+  .amount-paid-controls .btn {
+    padding: 0.25rem 0.6rem;
+  }
+
+  /* Invoice view: Back to Products / Print / Email actions */
+  .invoice-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Print */
+.print-only {
+  display: none;
+}
+
+@media print {
+  header, footer, .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: inline !important;
+  }
+
+  html {
+    font-size: 11px;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .container {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .form-card {
+    box-shadow: none !important;
+    border: 1px solid #ddd;
+    padding: 1rem !important;
+    border-radius: 0 !important;
+  }
+
+  .table-responsive {
+    overflow: visible !important;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.35rem 0.5rem !important;
+    white-space: normal !important;
+  }
+
+  /* Bootstrap's col-md-6 only goes side-by-side above a 768px viewport, which
+     print previews don't satisfy, so force the two-column layout explicitly. */
+  .row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+  }
+
+  .row > .col-md-6 {
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
+  }
+
+  /* text-md-end (Bill To) relies on the same 768px breakpoint check, which the
+     print page box doesn't reliably satisfy, so force it explicitly here. */
+  .text-md-end {
+    text-align: right !important;
+  }
+
+  .invoice-top-row {
+    align-items: flex-start !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 12mm;
+  }
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
@@ -9,34 +10,69 @@ namespace EBill.Models
         public int Id { get; set; }
 
         [Required(ErrorMessage = "Company name is required.")]
-        [StringLength(200)]
+        [StringLength(200, MinimumLength = 2, ErrorMessage = "Company name must be between 2 and 200 characters.")]
         [Display(Name = "Company Name")]
         public string CompanyName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Email address is required.")]
         [EmailAddress(ErrorMessage = "Enter a valid email address.")]
+        [StringLength(256, ErrorMessage = "Email address cannot exceed 256 characters.")]
         [Display(Name = "Email Address")]
         public string Email { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Password is required.")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters.")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$",
+            ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, and one digit.")]
+        [DataType(DataType.Password)]
+        [NotMapped]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please confirm your password.")]
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm Password")]
+        [Compare("Password", ErrorMessage = "Passwords do not match.")]
+        [NotMapped]
+        public string ConfirmPassword { get; set; } = string.Empty;
+
+        // Hashed password, populated server-side; never bound directly from a form.
+        [ValidateNever]
+        public string PasswordHash { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "Phone number is required.")]
-        [Phone(ErrorMessage = "Enter a valid phone number.")]
+        [RegularExpression(@"^(\+91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}$",
+            ErrorMessage = "Enter a valid 10-digit mobile number (optionally prefixed with +91).")]
         [Display(Name = "Phone Number")]
         public string PhoneNumber { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Address is required.")]
-        [StringLength(500)]
+        [StringLength(500, MinimumLength = 5, ErrorMessage = "Address must be between 5 and 500 characters.")]
         public string Address { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "State is required.")]
-        [StringLength(100)]
-        public string State { get; set; } = string.Empty;
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "State must be between 2 and 100 characters.")]
+        [RegularExpression(@"^[A-Za-z\s&\-]+$", ErrorMessage = "State can only contain letters, spaces, & and -.")]
+        public string State { get; set; } = "Tamil Nadu";
 
         [Required(ErrorMessage = "District is required.")]
-        [StringLength(100)]
+        [Display(Name = "District")]
         public string District { get; set; } = string.Empty;
 
+        public static readonly string[] TamilNaduDistricts =
+        {
+            "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore",
+            "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kanchipuram",
+            "Kanyakumari", "Karur", "Krishnagiri", "Madurai", "Mayiladuthurai",
+            "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai",
+            "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi",
+            "Thanjavur", "Theni", "Thoothukudi", "Tiruchirappalli", "Tirunelveli",
+            "Tirupathur", "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur",
+            "Vellore", "Viluppuram", "Virudhunagar"
+        };
+
         [Required(ErrorMessage = "Country is required.")]
-        [StringLength(100)]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Country must be between 2 and 100 characters.")]
+        [RegularExpression(@"^[A-Za-z\s&\-]+$", ErrorMessage = "Country can only contain letters, spaces, & and -.")]
         public string Country { get; set; } = "India";
 
         [Required(ErrorMessage = "Pincode is required.")]
@@ -52,6 +88,7 @@ namespace EBill.Models
 
         [Display(Name = "Logo")]
         [ValidateNever]
+        [NotMapped]
         public IFormFile? LogoFile { get; set; }
 
         // Relative path (under wwwroot) of the saved logo, set after upload.
