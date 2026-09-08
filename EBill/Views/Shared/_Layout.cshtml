@@ -15,12 +15,6 @@
     <link rel="stylesheet" href="~/EBill.styles.css" asp-append-version="true" />
 </head>
 <body class="d-flex flex-column min-vh-100">
-    <button type="button" id="fabBackBtn" class="fab-btn fab-back no-print" aria-label="Go back" title="Go back">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-        </svg>
-    </button>
     <button type="button" id="fabReloadBtn" class="fab-btn fab-reload no-print" aria-label="Reload page" title="Reload page">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"></polyline>
@@ -31,7 +25,15 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid justify-content-between">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">EBill</a>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" id="fabBackBtn" class="nav-back-btn no-print" aria-label="Go back" title="Go back">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                    <a class="navbar-brand mb-0" asp-area="" asp-controller="Home" asp-action="Index">EBill</a>
+                </div>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     <div class="d-flex align-items-center gap-2">

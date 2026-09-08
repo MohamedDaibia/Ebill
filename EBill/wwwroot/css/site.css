@@ -468,9 +468,18 @@ body {
   .accounting-table td {
     padding: 0.5rem 0.4rem;
   }
+
+  .accounting-share-row #accountingShareLink {
+    flex: 1 1 100%;
+    order: -1;
+  }
+
+  .accounting-share-row .btn {
+    flex: 1 1 auto;
+  }
 }
 
-/* Floating action buttons: back (top-left) and reload (bottom-right) on every page */
+/* Floating reload button (bottom-right) on every page */
 .fab-btn {
   position: fixed;
   z-index: 1040;
@@ -502,11 +511,6 @@ body {
   transform: translateY(-1px);
 }
 
-.fab-back {
-  top: 16px;
-  left: 16px;
-}
-
 .fab-reload {
   bottom: 16px;
   right: 16px;
@@ -523,15 +527,50 @@ body {
     height: 18px;
   }
 
-  .fab-back {
-    top: 10px;
-    left: 10px;
-  }
-
   .fab-reload {
     bottom: 10px;
     right: 10px;
   }
+}
+
+/* Back button, inline in the navbar next to the "EBill" brand (top-left of the page) */
+.nav-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  color: var(--brand-green-dark);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nav-back-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.nav-back-btn:hover,
+.nav-back-btn:focus {
+  background-color: var(--brand-green-light);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+.accounting-share-row {
+  max-width: 640px;
+}
+
+.accounting-share-row #accountingShareLink {
+  min-width: 0;
+  flex: 1 1 260px;
+  font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.8rem;
 }
 
 /* Print */
@@ -600,8 +639,15 @@ body {
     align-items: flex-start !important;
   }
 
+  /* A non-zero @page margin leaves Chrome/Edge room to print their own
+     header/footer (page title, URL, date, page number). Set it to 0 so
+     nothing prints there, and restore the spacing as body padding instead. */
   @page {
     size: auto;
-    margin: 12mm;
+    margin: 0;
+  }
+
+  body {
+    padding: 12mm !important;
   }
 }
