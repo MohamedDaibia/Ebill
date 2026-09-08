@@ -55,7 +55,7 @@ namespace EBill.Models
 
         public static readonly string[] QtyTypes =
         {
-            "Nos", "Pcs", "Box", "Kg", "Gram", "Litre", "Meter",
+            "Nos", "Pcs", "Box", "Kg", "Gram","Sq ft", "Litre", "Meter",
             "Set", "Dozen", "Pack", "Bag", "Pair", "Roll", "Bundle"
         };
     }
