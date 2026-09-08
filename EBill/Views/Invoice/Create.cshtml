@@ -5,12 +5,15 @@
 
 <div class="row">
     <div class="col-lg-7">
-        <div class="page-heading">
-            <span class="icon-badge icon-badge--green">&#128221;</span>
-            <div>
-                <h1 class="mb-0">Create Invoice</h1>
-                <p class="text-muted mb-0">Enter the customer's details to start a new invoice.</p>
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div class="page-heading">
+                <span class="icon-badge icon-badge--green">&#128221;</span>
+                <div>
+                    <h1 class="mb-0">Create Invoice</h1>
+                    <p class="text-muted mb-0">Enter the customer's details to start a new invoice.</p>
+                </div>
             </div>
+            <a asp-controller="Invoice" asp-action="Index" class="show-invoices-link mt-1">Show Invoices</a>
         </div>
 
         <div class="form-card mt-3">

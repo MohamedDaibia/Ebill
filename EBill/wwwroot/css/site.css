@@ -185,6 +185,38 @@ body {
   color: var(--brand-orange);
 }
 
+/* "Show Invoices" link on Create Invoice page */
+.show-invoices-link {
+  font-weight: 600;
+  color: var(--brand-green-dark);
+  text-decoration: none;
+  border-bottom: 2px solid var(--brand-green);
+  padding-bottom: 0.1rem;
+}
+
+.show-invoices-link:hover {
+  color: var(--brand-orange-dark);
+  border-color: var(--brand-orange);
+}
+
+/* Previous / Next invoice navigation on the Tax Invoice page */
+.invoice-nav-link {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--brand-green-dark);
+  text-decoration: none;
+}
+
+.invoice-nav-link:hover {
+  color: var(--brand-orange-dark);
+  text-decoration: underline;
+}
+
+.invoice-nav-link--disabled {
+  color: #b7c2bc;
+  cursor: not-allowed;
+}
+
 /* Add / remove line item controls */
 .btn-add-item {
   display: inline-flex;
@@ -405,6 +437,100 @@ body {
   /* Invoice view: Back to Products / Print / Email actions */
   .invoice-actions .btn {
     width: 100%;
+  }
+
+  /* Invoices list page */
+  .invoice-list-table {
+    font-size: 0.82rem;
+  }
+
+  .invoice-list-table th,
+  .invoice-list-table td {
+    padding: 0.5rem 0.4rem;
+    white-space: nowrap;
+  }
+
+  .invoice-filter-bar .btn {
+    flex: 1 1 auto;
+  }
+
+  .invoice-filter-bar form {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+
+  /* Accounting report page */
+  .accounting-table {
+    font-size: 0.85rem;
+  }
+
+  .accounting-table th,
+  .accounting-table td {
+    padding: 0.5rem 0.4rem;
+  }
+}
+
+/* Floating action buttons: back (top-left) and reload (bottom-right) on every page */
+.fab-btn {
+  position: fixed;
+  z-index: 1040;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  color: var(--brand-green-dark);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.fab-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.fab-btn:hover,
+.fab-btn:focus {
+  background-color: var(--brand-green-light);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  color: var(--brand-green-dark);
+  transform: translateY(-1px);
+}
+
+.fab-back {
+  top: 16px;
+  left: 16px;
+}
+
+.fab-reload {
+  bottom: 16px;
+  right: 16px;
+}
+
+@media (max-width: 576px) {
+  .fab-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .fab-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .fab-back {
+    top: 10px;
+    left: 10px;
+  }
+
+  .fab-reload {
+    bottom: 10px;
+    right: 10px;
   }
 }
 

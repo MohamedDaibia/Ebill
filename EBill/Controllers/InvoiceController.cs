@@ -23,6 +23,81 @@ namespace EBill.Controllers
             return View(new Customer());
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Index(int? days)
+        {
+            var query = _db.Invoices
+                .Include(i => i.Customer)
+                .Include(i => i.Products)
+                .Include(i => i.Taxes)
+                .AsQueryable();
+
+            if (days.HasValue && days.Value > 0)
+            {
+                var fromDate = DateTime.UtcNow.Date.AddDays(-(days.Value - 1));
+                query = query.Where(i => i.Date >= fromDate);
+            }
+
+            var invoices = await query
+                .OrderByDescending(i => i.Date)
+                .ThenByDescending(i => i.Id)
+                .ToListAsync();
+
+            ViewData["SelectedDays"] = days;
+            return View(invoices);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Accounting(int? days)
+        {
+            // The report is a fixed snapshot of "now" at creation time, so the link
+            // keeps showing the same period even after new invoices are added later.
+            var toDate = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+            var fromDate = (days.HasValue && days.Value > 0)
+                ? DateTime.UtcNow.Date.AddDays(-(days.Value - 1))
+                : DateTime.MinValue;
+
+            var link = new AccountingLink
+            {
+                Id = Guid.NewGuid(),
+                Days = days,
+                FromDate = fromDate,
+                ToDate = toDate,
+                CreatedDate = DateTime.UtcNow,
+            };
+
+            _db.AccountingLinks.Add(link);
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction("Index", "Accounting", new { id = link.Id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id, int? days)
+        {
+            var invoice = await _db.Invoices
+                .Include(i => i.Products)
+                .Include(i => i.Taxes)
+                .FirstOrDefaultAsync(i => i.Id == id);
+
+            if (invoice is null)
+            {
+                return NotFound();
+            }
+
+            // Products and Taxes are configured with DeleteBehavior.Restrict, so they
+            // must be removed explicitly before the invoice itself can be deleted.
+            _db.Products.RemoveRange(invoice.Products);
+            _db.Taxes.RemoveRange(invoice.Taxes);
+            _db.Invoices.Remove(invoice);
+
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index), new { days });
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Customer model)
@@ -69,6 +144,21 @@ namespace EBill.Controllers
             }
 
             ViewData["Company"] = company;
+
+            // "Next"/"Previous" step through invoices in creation order (by Id),
+            // which lines up with BillNumber since it's generated the same way.
+            ViewData["PreviousInvoiceId"] = await _db.Invoices
+                .Where(i => i.Id < id)
+                .OrderByDescending(i => i.Id)
+                .Select(i => (int?)i.Id)
+                .FirstOrDefaultAsync();
+
+            ViewData["NextInvoiceId"] = await _db.Invoices
+                .Where(i => i.Id > id)
+                .OrderBy(i => i.Id)
+                .Select(i => (int?)i.Id)
+                .FirstOrDefaultAsync();
+
             return View(invoice);
         }
 

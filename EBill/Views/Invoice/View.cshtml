@@ -7,13 +7,51 @@
     var subtotal = Model.Products.Sum(p => p.TotalAmount);
     var grandTotal = tax is null ? subtotal : subtotal + tax.TotalTax;
     var amountPaidDisplay = Model.AmountPaid > 0 ? Model.AmountPaid : grandTotal;
+    bool isReadOnly = ViewData["ReadOnly"] as bool? ?? false;
+    Guid? accountingLinkId = ViewData["AccountingLinkId"] as Guid?;
+    int? previousInvoiceId = ViewData["PreviousInvoiceId"] as int?;
+    int? nextInvoiceId = ViewData["NextInvoiceId"] as int?;
 }
 
-<div class="page-heading">
-    <span class="icon-badge icon-badge--green">&#128196;</span>
-    <div>
-        <h1 class="mb-0">Tax Invoice</h1>
-        <p class="text-muted mb-0">Invoice @Model.BillNumber</p>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div class="page-heading">
+        <span class="icon-badge icon-badge--green">&#128196;</span>
+        <div>
+            <h1 class="mb-0">Tax Invoice</h1>
+            <p class="text-muted mb-0">Invoice @Model.BillNumber</p>
+        </div>
+    </div>
+    <div class="d-flex gap-3 invoice-nav-links mt-1">
+        @if (previousInvoiceId.HasValue)
+        {
+            @if (isReadOnly)
+            {
+                <a asp-controller="Accounting" asp-action="Invoice" asp-route-id="@accountingLinkId" asp-route-invoiceId="@previousInvoiceId" class="invoice-nav-link">&larr; Previous</a>
+            }
+            else
+            {
+                <a asp-controller="Invoice" asp-action="View" asp-route-id="@previousInvoiceId" class="invoice-nav-link">&larr; Previous</a>
+            }
+        }
+        else
+        {
+            <span class="invoice-nav-link invoice-nav-link--disabled">&larr; Previous</span>
+        }
+        @if (nextInvoiceId.HasValue)
+        {
+            @if (isReadOnly)
+            {
+                <a asp-controller="Accounting" asp-action="Invoice" asp-route-id="@accountingLinkId" asp-route-invoiceId="@nextInvoiceId" class="invoice-nav-link">Next &rarr;</a>
+            }
+            else
+            {
+                <a asp-controller="Invoice" asp-action="View" asp-route-id="@nextInvoiceId" class="invoice-nav-link">Next &rarr;</a>
+            }
+        }
+        else
+        {
+            <span class="invoice-nav-link invoice-nav-link--disabled">Next &rarr;</span>
+        }
     </div>
 </div>
 
@@ -88,10 +126,10 @@
                         <td>@product.HsnSac</td>
                         <td class="text-end">@product.Qty</td>
                         <td>@product.QtyType</td>
-                        <td class="text-end">@product.Rate.ToString("0.00")</td>
-                        <td class="text-end">@product.Discount.ToString("0.00")</td>
+                        <td class="text-end">@MoneyFormat.Format(product.Rate)</td>
+                        <td class="text-end">@MoneyFormat.Format(product.Discount)</td>
                         <td class="text-end">@((int)product.TaxRate)%</td>
-                        <td class="text-end">@product.TotalAmount.ToString("0.00")</td>
+                        <td class="text-end">@MoneyFormat.Format(product.TotalAmount)</td>
                     </tr>
                     rowNum++;
                 }
@@ -111,32 +149,39 @@
                 <tbody>
                     <tr>
                         <td>Subtotal</td>
-                        <td class="text-end">&#8377; @subtotal.ToString("0.00")</td>
+                        <td class="text-end">&#8377; @MoneyFormat.Format(subtotal)</td>
                     </tr>
                     @if (tax is not null)
                     {
                         <tr>
                             <td>CGST</td>
-                            <td class="text-end">&#8377; @tax.Cgst.ToString("0.00")</td>
+                            <td class="text-end">&#8377; @MoneyFormat.Format(tax.Cgst)</td>
                         </tr>
                         <tr>
                             <td>SGST</td>
-                            <td class="text-end">&#8377; @tax.Sgst.ToString("0.00")</td>
+                            <td class="text-end">&#8377; @MoneyFormat.Format(tax.Sgst)</td>
                         </tr>
                     }
                     <tr class="fw-bold border-top">
                         <td>Grand Total</td>
-                        <td class="text-end">&#8377; @grandTotal.ToString("0.00")</td>
+                        <td class="text-end">&#8377; @MoneyFormat.Format(grandTotal)</td>
                     </tr>
                     <tr>
                         <td class="align-middle">Amount Paid</td>
                         <td class="text-end">
-                            <div class="d-flex justify-content-end align-items-center gap-2 no-print amount-paid-controls">
-                                <span>&#8377;</span>
-                                <input type="number" id="amountPaidInput" class="form-control form-control-sm text-end" step="0.01" min="0" value="@amountPaidDisplay.ToString("0.00")" />
-                                <button type="button" id="markPaidBtn" class="btn btn-sm btn-primary">Paid</button>
-                            </div>
-                            <span class="print-only">&#8377; @amountPaidDisplay.ToString("0.00")</span>
+                            @if (isReadOnly)
+                            {
+                                <span>&#8377; @MoneyFormat.Format(amountPaidDisplay)</span>
+                            }
+                            else
+                            {
+                                <div class="d-flex justify-content-end align-items-center gap-2 no-print amount-paid-controls">
+                                    <span>&#8377;</span>
+                                    <input type="number" id="amountPaidInput" class="form-control form-control-sm text-end" step="0.01" min="0" value="@amountPaidDisplay.ToString("0.00")" />
+                                    <button type="button" id="markPaidBtn" class="btn btn-sm btn-primary">Paid</button>
+                                </div>
+                                <span class="print-only">&#8377; @MoneyFormat.Format(amountPaidDisplay)</span>
+                            }
                         </td>
                     </tr>
                 </tbody>
@@ -165,10 +210,18 @@
 @Html.AntiForgeryToken()
 
 <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 mt-3 no-print invoice-actions">
-    <a asp-controller="Product" asp-action="Index" asp-route-invoiceId="@Model.Id" class="btn btn-outline-secondary">Back to Products</a>
-    <button type="button" id="printBtn" class="btn btn-outline-secondary">Print</button>
-    <button type="button" id="emailBtn" class="btn btn-primary">@(Model.Emailed ? "Re-send Email" : "Email")</button>
-    <span id="emailedNote" class="text-muted small text-center text-sm-start @(Model.Emailed ? "" : "d-none")">&#10003; Emailed</span>
+    @if (isReadOnly)
+    {
+        <a asp-controller="Accounting" asp-action="Index" asp-route-id="@accountingLinkId" class="btn btn-outline-secondary">&larr; Back to Report</a>
+        <button type="button" id="printBtn" class="btn btn-outline-secondary">Print</button>
+    }
+    else
+    {
+        <a asp-controller="Product" asp-action="Index" asp-route-invoiceId="@Model.Id" class="btn btn-outline-secondary">Back to Products</a>
+        <button type="button" id="printBtn" class="btn btn-outline-secondary">Print</button>
+        <button type="button" id="emailBtn" class="btn btn-primary">@(Model.Emailed ? "Re-send Email" : "Email")</button>
+        <span id="emailedNote" class="text-muted small text-center text-sm-start @(Model.Emailed ? "" : "d-none")">&#10003; Emailed</span>
+    }
 </div>
 
 @section Scripts {
@@ -177,31 +230,41 @@
             const invoiceId = @Model.Id;
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-            document.getElementById('printBtn').addEventListener('click', function () {
-                window.print();
-            });
+            const printBtn = document.getElementById('printBtn');
+            const markPaidBtn = document.getElementById('markPaidBtn');
+            const emailBtn = document.getElementById('emailBtn');
 
-            document.getElementById('markPaidBtn').addEventListener('click', async function () {
-                const formData = new FormData();
-                formData.append('id', invoiceId);
-                formData.append('amountPaid', document.getElementById('amountPaidInput').value);
-                formData.append('__RequestVerificationToken', token);
+            if (printBtn) {
+                printBtn.addEventListener('click', function () {
+                    window.print();
+                });
+            }
 
-                await fetch('/Invoice/UpdatePayment', { method: 'POST', body: formData });
-            });
+            if (markPaidBtn) {
+                markPaidBtn.addEventListener('click', async function () {
+                    const formData = new FormData();
+                    formData.append('id', invoiceId);
+                    formData.append('amountPaid', document.getElementById('amountPaidInput').value);
+                    formData.append('__RequestVerificationToken', token);
 
-            document.getElementById('emailBtn').addEventListener('click', async function () {
-                const btn = this;
-                const formData = new FormData();
-                formData.append('id', invoiceId);
-                formData.append('__RequestVerificationToken', token);
+                    await fetch('/Invoice/UpdatePayment', { method: 'POST', body: formData });
+                });
+            }
 
-                const response = await fetch('/Invoice/MarkEmailed', { method: 'POST', body: formData });
-                if (response.ok) {
-                    btn.textContent = 'Re-send Email';
-                    document.getElementById('emailedNote').classList.remove('d-none');
-                }
-            });
+            if (emailBtn) {
+                emailBtn.addEventListener('click', async function () {
+                    const btn = this;
+                    const formData = new FormData();
+                    formData.append('id', invoiceId);
+                    formData.append('__RequestVerificationToken', token);
+
+                    const response = await fetch('/Invoice/MarkEmailed', { method: 'POST', body: formData });
+                    if (response.ok) {
+                        btn.textContent = 'Re-send Email';
+                        document.getElementById('emailedNote').classList.remove('d-none');
+                    }
+                });
+            }
         })();
     </script>
 }

@@ -1,14 +1,33 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - EBill</title>
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="~/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="~/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="~/apple-touch-icon.png" />
+    <link rel="manifest" href="~/site.webmanifest" />
+    <meta name="theme-color" content="#1f8a53" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/EBill.styles.css" asp-append-version="true" />
 </head>
 <body class="d-flex flex-column min-vh-100">
+    <button type="button" id="fabBackBtn" class="fab-btn fab-back no-print" aria-label="Go back" title="Go back">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+    </button>
+    <button type="button" id="fabReloadBtn" class="fab-btn fab-reload no-print" aria-label="Reload page" title="Reload page">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+    </button>
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid justify-content-between">
@@ -16,7 +35,7 @@
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     <div class="d-flex align-items-center gap-2">
-                        <a class="nav-link text-dark" asp-controller="Invoice" asp-action="Create">Create Invoice</a>
+                        <a class="nav-link text-white" asp-controller="Invoice" asp-action="Create">Create Invoice</a>
                         <a class="btn btn-primary" asp-controller="Account" asp-action="Logout">Logout</a>
                     </div>
                 }
@@ -41,6 +60,27 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            var backBtn = document.getElementById('fabBackBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', function () {
+                    if (window.history.length > 1) {
+                        window.history.back();
+                    } else {
+                        window.location.href = '/';
+                    }
+                });
+            }
+
+            var reloadBtn = document.getElementById('fabReloadBtn');
+            if (reloadBtn) {
+                reloadBtn.addEventListener('click', function () {
+                    window.location.reload();
+                });
+            }
+        })();
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

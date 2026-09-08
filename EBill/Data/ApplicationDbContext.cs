@@ -14,6 +14,7 @@ namespace EBill.Data
         public DbSet<Product> Products => Set<Product>();
         public DbSet<Invoice> Invoices => Set<Invoice>();
         public DbSet<Tax> Taxes => Set<Tax>();
+        public DbSet<AccountingLink> AccountingLinks => Set<AccountingLink>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -65,6 +66,11 @@ namespace EBill.Data
                 .WithOne(t => t.Invoice)
                 .HasForeignKey(t => t.InvoiceId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Id is generated in application code (Guid.NewGuid()), not by the database.
+            modelBuilder.Entity<AccountingLink>()
+                .Property(a => a.Id)
+                .ValueGeneratedNever();
 
             foreach (var property in modelBuilder.Model.GetEntityTypes()
                 .SelectMany(t => t.GetProperties())
