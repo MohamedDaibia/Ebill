@@ -93,5 +93,22 @@ namespace EBill.Models
 
         // Relative path (under wwwroot) of the saved logo, set after upload.
         public string? LogoPath { get; set; }
+
+        // "Connect" flow (see EbillConnectService): only a hash of the refresh
+        // token handed to an external app (e.g. Stock Management) is stored here —
+        // the plaintext value is returned to the caller once, at issue time, and
+        // never persisted as-is.
+        [ValidateNever]
+        public string? RefreshTokenHash { get; set; }
+
+        [ValidateNever]
+        public DateTime? RefreshTokenExpiresAt { get; set; }
+
+        // Where to send the user back after login/registration when this request
+        // came from an external app's "connect" flow. Never persisted — validated
+        // against AllowedConnectOrigins (see EbillConnectService) before use.
+        [ValidateNever]
+        [NotMapped]
+        public string? ReturnUrl { get; set; }
     }
 }

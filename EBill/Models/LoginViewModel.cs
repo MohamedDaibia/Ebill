@@ -15,5 +15,10 @@ namespace EBill.Models
 
         [Display(Name = "Remember me")]
         public bool RememberMe { get; set; }
+
+        // Set when an external app (e.g. Stock Management's "Sync Ebill" button)
+        // sent the user here to connect — carried through the form as a hidden
+        // field so it survives the POST. See EbillConnectService.IsAllowedReturnUrl.
+        public string? ReturnUrl { get; set; }
     }
 }

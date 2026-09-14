@@ -34,6 +34,22 @@ namespace EBill.Controllers
             return View(invoice);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> QuotationIndex(int quotationId)
+        {
+            var quotation = await _db.Quotations
+                .Include(q => q.Customer)
+                .Include(q => q.Products)
+                .FirstOrDefaultAsync(q => q.Id == quotationId);
+
+            if (quotation is null)
+            {
+                return NotFound();
+            }
+
+            return View(quotation);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Add(int invoiceId, [FromForm] ProductLineItemInput input)
@@ -105,7 +121,79 @@ namespace EBill.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Remove(int id)
+        public async Task<IActionResult> AddToQuotation(int quotationId, [FromForm] QuotationLineItemInput input)
+        {
+            var qtyFieldValid = !ModelState.TryGetValue(nameof(input.Qty), out var qtyState) || qtyState.Errors.Count == 0;
+
+            if (qtyFieldValid &&
+                decimal.Parse(input.Qty, NumberStyles.Number, CultureInfo.InvariantCulture) <= 0)
+            {
+                ModelState.AddModelError(nameof(input.Qty), "Quantity must be greater than 0.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState
+                    .Where(kvp => kvp.Value?.Errors.Count > 0)
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray());
+
+                return BadRequest(new { success = false, errors });
+            }
+
+            var qtyValue = decimal.Parse(input.Qty, NumberStyles.Number, CultureInfo.InvariantCulture);
+
+            var quotation = await _db.Quotations.FindAsync(quotationId);
+            if (quotation is null)
+            {
+                return NotFound();
+            }
+
+            var product = new Product
+            {
+                CustomerId = quotation.CustomerId,
+                QuotationId = quotation.Id,
+                Description = input.Description,
+                HsnSac = input.HsnSac,
+                Qty = input.Qty,
+                QtyType = input.QtyType,
+                Rate = input.Rate,
+                Discount = input.Discount,
+                TaxRate = GstRate.Zero,
+                TotalAmount = (qtyValue * input.Rate) - input.Discount,
+            };
+
+            _db.Products.Add(product);
+            await _db.SaveChangesAsync();
+
+            var subtotal = await _db.Products
+                .Where(p => p.QuotationId == quotationId)
+                .SumAsync(p => p.TotalAmount);
+
+            // Quotations have no tax step, so the stored total is always just the line-item subtotal.
+            quotation.TotalAmount = subtotal;
+            await _db.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                product = new
+                {
+                    product.Id,
+                    product.Description,
+                    product.HsnSac,
+                    product.Qty,
+                    product.QtyType,
+                    product.Rate,
+                    product.Discount,
+                    product.TotalAmount,
+                },
+                subtotal
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Remove(int id, int? invoiceId, int? quotationId)
         {
             var product = await _db.Products.FindAsync(id);
             if (product is null)
@@ -113,14 +201,47 @@ namespace EBill.Controllers
                 return NotFound();
             }
 
-            var invoiceId = product.InvoiceId;
+            // A product can be linked to both an invoice and the quotation it was
+            // billed from (see InvoiceController.CreateFromQuotation), so removing it
+            // from one page should only unlink it from that side. It's only actually
+            // deleted once neither side references it any more.
+            if (invoiceId.HasValue && product.InvoiceId == invoiceId)
+            {
+                product.InvoiceId = null;
+            }
 
-            _db.Products.Remove(product);
+            if (quotationId.HasValue && product.QuotationId == quotationId)
+            {
+                product.QuotationId = null;
+            }
+
+            if (product.InvoiceId is null && product.QuotationId is null)
+            {
+                _db.Products.Remove(product);
+            }
+
             await _db.SaveChangesAsync();
 
-            var subtotal = await _db.Products
-                .Where(p => p.InvoiceId == invoiceId)
-                .SumAsync(p => p.TotalAmount);
+            decimal subtotal;
+            if (quotationId.HasValue)
+            {
+                subtotal = await _db.Products
+                    .Where(p => p.QuotationId == quotationId)
+                    .SumAsync(p => p.TotalAmount);
+
+                var quotation = await _db.Quotations.FindAsync(quotationId.Value);
+                if (quotation is not null)
+                {
+                    quotation.TotalAmount = subtotal;
+                    await _db.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                subtotal = await _db.Products
+                    .Where(p => p.InvoiceId == invoiceId)
+                    .SumAsync(p => p.TotalAmount);
+            }
 
             return Ok(new { success = true, subtotal });
         }

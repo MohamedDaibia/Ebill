@@ -12,18 +12,31 @@ namespace EBill.Controllers
         private readonly ApplicationDbContext _db;
         private readonly IPasswordHasher<Company> _passwordHasher;
         private readonly JwtTokenService _tokenService;
+        private readonly EbillConnectService _connectService;
 
-        public AccountController(ApplicationDbContext db, IPasswordHasher<Company> passwordHasher, JwtTokenService tokenService)
+        public AccountController(
+            ApplicationDbContext db,
+            IPasswordHasher<Company> passwordHasher,
+            JwtTokenService tokenService,
+            EbillConnectService connectService)
         {
             _db = db;
             _passwordHasher = passwordHasher;
             _tokenService = tokenService;
+            _connectService = connectService;
         }
 
+        // returnUrl is set when another app (e.g. Stock Management's "Sync Ebill"
+        // button) sent the user here to connect — only kept if it's on the
+        // AllowedConnectOrigins allowlist, otherwise treated as if absent.
         [HttpGet]
-        public IActionResult Login()
+        public IActionResult Login(string? returnUrl = null)
         {
-            return View(new LoginViewModel());
+            var model = new LoginViewModel
+            {
+                ReturnUrl = _connectService.IsAllowedReturnUrl(returnUrl) ? returnUrl : null
+            };
+            return View(model);
         }
 
         [HttpPost]
@@ -56,6 +69,14 @@ namespace EBill.Controllers
                 SameSite = SameSiteMode.Strict,
                 Expires = model.RememberMe ? DateTimeOffset.UtcNow.AddDays(30) : null,
             });
+
+            // "Connect" flow: hand the Ebill company id + a fresh refresh token back
+            // to whichever app sent the user here, instead of going to the invoice screen.
+            if (_connectService.IsAllowedReturnUrl(model.ReturnUrl))
+            {
+                var redirectUrl = await _connectService.IssueTokenAndBuildRedirectUrlAsync(company!, model.ReturnUrl!);
+                return Redirect(redirectUrl);
+            }
 
             return RedirectToAction("Create", "Invoice");
         }

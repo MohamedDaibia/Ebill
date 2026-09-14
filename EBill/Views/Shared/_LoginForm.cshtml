@@ -1,6 +1,7 @@
 @model EBill.Models.LoginViewModel
 
 <form asp-controller="Account" asp-action="Login" method="post">
+    <input type="hidden" asp-for="ReturnUrl" />
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
     <div class="mb-3">
@@ -11,7 +12,19 @@
 
     <div class="mb-3">
         <label asp-for="Password" class="form-label"></label>
-        <input asp-for="Password" class="form-control" />
+        <div class="input-group">
+            <input asp-for="Password" class="form-control" id="loginPassword" />
+            <button type="button" class="btn btn-outline-secondary" id="toggleLoginPassword" tabindex="-1" aria-label="Show password">
+                <svg id="loginPasswordIconEye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                    <circle cx="12" cy="12" r="3" />
+                </svg>
+                <svg id="loginPasswordIconEyeOff" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.4 21.4 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.4 21.4 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+            </button>
+        </div>
         <span asp-validation-for="Password" class="text-danger"></span>
     </div>
 
@@ -22,3 +35,22 @@
 
     <button type="submit" class="btn btn-primary w-100">Login</button>
 </form>
+
+<script>
+    (function () {
+        var toggleBtn = document.getElementById('toggleLoginPassword');
+        var passwordInput = document.getElementById('loginPassword');
+        var eyeIcon = document.getElementById('loginPasswordIconEye');
+        var eyeOffIcon = document.getElementById('loginPasswordIconEyeOff');
+
+        if (toggleBtn && passwordInput) {
+            toggleBtn.addEventListener('click', function () {
+                var isPassword = passwordInput.type === 'password';
+                passwordInput.type = isPassword ? 'text' : 'password';
+                eyeIcon.style.display = isPassword ? 'none' : 'inline-block';
+                eyeOffIcon.style.display = isPassword ? 'inline-block' : 'none';
+                toggleBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+            });
+        }
+    })();
+</script>

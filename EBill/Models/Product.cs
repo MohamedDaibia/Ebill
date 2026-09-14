@@ -18,6 +18,11 @@ namespace EBill.Models
         [ForeignKey(nameof(InvoiceId))]
         public Invoice? Invoice { get; set; }
 
+        public int? QuotationId { get; set; }
+
+        [ForeignKey(nameof(QuotationId))]
+        public Quotation? Quotation { get; set; }
+
         [Required(ErrorMessage = "Description is required.")]
         [StringLength(300, ErrorMessage = "Description cannot exceed 300 characters.")]
         public string Description { get; set; } = string.Empty;
@@ -49,9 +54,9 @@ namespace EBill.Models
         [Display(Name = "Total Amount")]
         public decimal TotalAmount { get; set; }
 
-        public DateTime CreatedDate { get; set; }
+        public DateTime CreatedDate { get; set; } = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"));
 
-        public DateTime UpdatedDate { get; set; }
+        public DateTime UpdatedDate { get; set; } = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"));
 
         public static readonly string[] QtyTypes =
         {

@@ -17,6 +17,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddScoped<IPasswordHasher<Company>, PasswordHasher<Company>>();
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<EbillConnectService>();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 

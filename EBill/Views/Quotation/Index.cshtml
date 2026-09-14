@@ -1,0 +1,117 @@
+@model List<EBill.Models.Quotation>
+@{
+    ViewData["Title"] = "Quotations";
+    int? selectedDays = ViewData["SelectedDays"] as int?;
+    var presetDays = new[] { 1, 7, 30, 90 };
+    var customValue = (selectedDays.HasValue && !presetDays.Contains(selectedDays.Value)) ? selectedDays : null;
+}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div class="page-heading">
+        <span class="icon-badge icon-badge--orange">&#128203;</span>
+        <div>
+            <h1 class="mb-0">Quotations</h1>
+            <p class="text-muted mb-0">Browse your quotations, filtered by date.</p>
+        </div>
+    </div>
+    <a asp-controller="Quotation" asp-action="Create" class="btn btn-outline-secondary btn-sm mt-1">+ New Quotation</a>
+</div>
+
+<div class="form-card mt-3">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 invoice-filter-bar">
+        <a asp-action="Index" class="btn btn-sm @(selectedDays is null ? "btn-primary" : "btn-outline-secondary")">All Time</a>
+        <a asp-action="Index" asp-route-days="1" class="btn btn-sm @(selectedDays == 1 ? "btn-primary" : "btn-outline-secondary")">Today</a>
+        <a asp-action="Index" asp-route-days="7" class="btn btn-sm @(selectedDays == 7 ? "btn-primary" : "btn-outline-secondary")">Last 7 Days</a>
+        <a asp-action="Index" asp-route-days="30" class="btn btn-sm @(selectedDays == 30 ? "btn-primary" : "btn-outline-secondary")">Last 30 Days</a>
+        <a asp-action="Index" asp-route-days="90" class="btn btn-sm @(selectedDays == 90 ? "btn-primary" : "btn-outline-secondary")">Last 90 Days</a>
+
+        <form asp-action="Index" method="get" class="d-flex align-items-center gap-2 ms-sm-auto">
+            <label for="customDays" class="text-muted small mb-0">Last</label>
+            <input type="number" id="customDays" name="days" min="1" class="form-control form-control-sm" style="width: 80px;" placeholder="N" value="@customValue" />
+            <label for="customDays" class="text-muted small mb-0">days</label>
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Go</button>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table align-middle invoice-list-table">
+            <thead>
+                <tr style="background-color: var(--brand-green-light);">
+                    <th>Quotation No.</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th class="text-end">Amount (&#8377;)</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No quotations found for this period.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var quotation in Model)
+                    {
+                        var total = quotation.Products.Sum(p => p.TotalAmount);
+                        <tr>
+                            <td>@quotation.QuotationNumber</td>
+                            <td>@quotation.Customer?.Name</td>
+                            <td>@quotation.Date.ToString("dd MMM yyyy")</td>
+                            <td class="text-end">&#8377; @MoneyFormat.Format(total)</td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a asp-controller="Quotation" asp-action="View" asp-route-id="@quotation.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteQuotationModal" data-quotation-id="@quotation.Id" data-quotation-number="@quotation.QuotationNumber" title="Delete quotation">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Delete Quotation Modal -->
+<div class="modal fade" id="deleteQuotationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="deleteQuotationForm" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Quotation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Are you sure you want to delete quotation <strong id="deleteQuotationNumber"></strong>? This will permanently remove its line items. This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete Quotation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const deleteModal = document.getElementById('deleteQuotationModal');
+            const deleteForm = document.getElementById('deleteQuotationForm');
+            const deleteQuotationNumber = document.getElementById('deleteQuotationNumber');
+
+            deleteModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const quotationId = button.getAttribute('data-quotation-id');
+                const quotationNumber = button.getAttribute('data-quotation-number');
+
+                deleteQuotationNumber.textContent = quotationNumber;
+                deleteForm.action = '/Quotation/Delete/' + quotationId + window.location.search;
+            });
+        })();
+    </script>
+}

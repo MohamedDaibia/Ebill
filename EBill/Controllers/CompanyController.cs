@@ -1,5 +1,6 @@
 using EBill.Data;
 using EBill.Models;
+using EBill.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,18 +15,30 @@ namespace EBill.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly ApplicationDbContext _db;
         private readonly IPasswordHasher<Company> _passwordHasher;
+        private readonly EbillConnectService _connectService;
 
-        public CompanyController(IWebHostEnvironment env, ApplicationDbContext db, IPasswordHasher<Company> passwordHasher)
+        public CompanyController(
+            IWebHostEnvironment env,
+            ApplicationDbContext db,
+            IPasswordHasher<Company> passwordHasher,
+            EbillConnectService connectService)
         {
             _env = env;
             _db = db;
             _passwordHasher = passwordHasher;
+            _connectService = connectService;
         }
 
+        // returnUrl carried through from Login (see AccountController) when a
+        // visitor without an Ebill account yet clicks "Register" mid-connect.
         [HttpGet]
-        public IActionResult Register()
+        public IActionResult Register(string? returnUrl = null)
         {
-            return View(new Company());
+            var model = new Company
+            {
+                ReturnUrl = _connectService.IsAllowedReturnUrl(returnUrl) ? returnUrl : null
+            };
+            return View(model);
         }
 
         [HttpPost]
@@ -77,6 +90,15 @@ namespace EBill.Controllers
 
             _db.Companies.Add(model);
             await _db.SaveChangesAsync();
+
+            // "Connect" flow: registering IS this new company's sign-in step here —
+            // send the Ebill id + a refresh token straight back rather than making
+            // them log in again right after.
+            if (_connectService.IsAllowedReturnUrl(model.ReturnUrl))
+            {
+                var redirectUrl = await _connectService.IssueTokenAndBuildRedirectUrlAsync(model, model.ReturnUrl!);
+                return Redirect(redirectUrl);
+            }
 
             return View("Confirmation", model);
         }

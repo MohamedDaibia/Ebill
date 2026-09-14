@@ -17,7 +17,7 @@ namespace EBill.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.33")
+                .HasAnnotation("ProductVersion", "8.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -25,7 +25,6 @@ namespace EBill.Migrations
             modelBuilder.Entity("EBill.Models.AccountingLink", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedNever()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedDate")
@@ -94,6 +93,12 @@ namespace EBill.Migrations
 
                     b.Property<string>("Pincode")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RefreshTokenHash")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("State")
@@ -183,6 +188,9 @@ namespace EBill.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<int?>("QuotationId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
@@ -195,6 +203,8 @@ namespace EBill.Migrations
                         .IsUnique();
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("QuotationId");
 
                     b.ToTable("Invoices");
                 });
@@ -238,6 +248,9 @@ namespace EBill.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<int?>("QuotationId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Rate")
                         .HasColumnType("decimal(18,2)");
 
@@ -256,7 +269,47 @@ namespace EBill.Migrations
 
                     b.HasIndex("InvoiceId");
 
+                    b.HasIndex("QuotationId");
+
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("EBill.Models.Quotation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("QuotationNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("QuotationNumber")
+                        .IsUnique();
+
+                    b.ToTable("Quotations");
                 });
 
             modelBuilder.Entity("EBill.Models.Tax", b =>
@@ -305,7 +358,14 @@ namespace EBill.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("EBill.Models.Quotation", "Quotation")
+                        .WithMany("Invoices")
+                        .HasForeignKey("QuotationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Customer");
+
+                    b.Navigation("Quotation");
                 });
 
             modelBuilder.Entity("EBill.Models.Product", b =>
@@ -321,9 +381,27 @@ namespace EBill.Migrations
                         .HasForeignKey("InvoiceId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("EBill.Models.Quotation", "Quotation")
+                        .WithMany("Products")
+                        .HasForeignKey("QuotationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Customer");
 
                     b.Navigation("Invoice");
+
+                    b.Navigation("Quotation");
+                });
+
+            modelBuilder.Entity("EBill.Models.Quotation", b =>
+                {
+                    b.HasOne("EBill.Models.Customer", "Customer")
+                        .WithMany("Quotations")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("EBill.Models.Tax", b =>
@@ -350,6 +428,8 @@ namespace EBill.Migrations
 
                     b.Navigation("Products");
 
+                    b.Navigation("Quotations");
+
                     b.Navigation("Taxes");
                 });
 
@@ -358,6 +438,13 @@ namespace EBill.Migrations
                     b.Navigation("Products");
 
                     b.Navigation("Taxes");
+                });
+
+            modelBuilder.Entity("EBill.Models.Quotation", b =>
+                {
+                    b.Navigation("Invoices");
+
+                    b.Navigation("Products");
                 });
 #pragma warning restore 612, 618
         }

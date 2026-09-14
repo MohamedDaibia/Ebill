@@ -30,8 +30,8 @@ namespace EBill.Models
         [Range(0, double.MaxValue, ErrorMessage = "Total tax cannot be negative.")]
         public decimal TotalTax { get; set; }
 
-        public DateTime CreatedDate { get; set; }
+        public DateTime CreatedDate { get; set; } = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"));
 
-        public DateTime UpdatedDate { get; set; }
+        public DateTime UpdatedDate { get; set; } = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"));
     }
 }

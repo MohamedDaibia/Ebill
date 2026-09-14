@@ -13,6 +13,7 @@ namespace EBill.Data
         public DbSet<Customer> Customers => Set<Customer>();
         public DbSet<Product> Products => Set<Product>();
         public DbSet<Invoice> Invoices => Set<Invoice>();
+        public DbSet<Quotation> Quotations => Set<Quotation>();
         public DbSet<Tax> Taxes => Set<Tax>();
         public DbSet<AccountingLink> AccountingLinks => Set<AccountingLink>();
 
@@ -30,6 +31,10 @@ namespace EBill.Data
 
             modelBuilder.Entity<Invoice>()
                 .HasIndex(i => i.BillNumber)
+                .IsUnique();
+
+            modelBuilder.Entity<Quotation>()
+                .HasIndex(q => q.QuotationNumber)
                 .IsUnique();
 
             modelBuilder.Entity<Invoice>()
@@ -55,6 +60,12 @@ namespace EBill.Data
                 .HasForeignKey(t => t.CustomerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Customer>()
+                .HasMany(c => c.Quotations)
+                .WithOne(q => q.Customer)
+                .HasForeignKey(q => q.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<Invoice>()
                 .HasMany(i => i.Products)
                 .WithOne(p => p.Invoice)
@@ -65,6 +76,18 @@ namespace EBill.Data
                 .HasMany(i => i.Taxes)
                 .WithOne(t => t.Invoice)
                 .HasForeignKey(t => t.InvoiceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Quotation>()
+                .HasMany(q => q.Products)
+                .WithOne(p => p.Quotation)
+                .HasForeignKey(p => p.QuotationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Quotation>()
+                .HasMany(q => q.Invoices)
+                .WithOne(i => i.Quotation)
+                .HasForeignKey(i => i.QuotationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Id is generated in application code (Guid.NewGuid()), not by the database.
@@ -124,6 +147,15 @@ namespace EBill.Data
                 {
                     var nextId = (Invoices.Any() ? Invoices.Max(i => i.Id) : 0) + 1;
                     entry.Entity.BillNumber = $"INV-{nextId:D5}";
+                }
+            }
+
+            foreach (var entry in ChangeTracker.Entries<Quotation>())
+            {
+                if (entry.State == EntityState.Added && string.IsNullOrEmpty(entry.Entity.QuotationNumber))
+                {
+                    var nextId = (Quotations.Any() ? Quotations.Max(q => q.Id) : 0) + 1;
+                    entry.Entity.QuotationNumber = $"QUO-{nextId:D5}";
                 }
             }
         }

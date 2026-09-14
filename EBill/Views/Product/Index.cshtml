@@ -348,6 +348,7 @@
                 const token = document.querySelector('#addItemForm input[name="__RequestVerificationToken"]').value;
                 const formData = new FormData();
                 formData.append('id', id);
+                formData.append('invoiceId', invoiceId);
                 formData.append('__RequestVerificationToken', token);
 
                 const response = await fetch('/Product/Remove', { method: 'POST', body: formData });

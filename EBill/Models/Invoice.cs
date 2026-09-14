@@ -14,6 +14,13 @@ namespace EBill.Models
         [ForeignKey(nameof(CustomerId))]
         public Customer? Customer { get; set; }
 
+        // Set when this invoice was generated from a quotation (see
+        // InvoiceController.CreateFromQuotation).
+        public int? QuotationId { get; set; }
+
+        [ForeignKey(nameof(QuotationId))]
+        public Quotation? Quotation { get; set; }
+
         [Required(ErrorMessage = "Bill number is required.")]
         [StringLength(50, ErrorMessage = "Bill number cannot exceed 50 characters.")]
         [Display(Name = "Bill Number")]
@@ -36,9 +43,9 @@ namespace EBill.Models
 
         public bool Emailed { get; set; }
 
-        public DateTime CreatedDate { get; set; }
+        public DateTime CreatedDate { get; set; } = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"));
 
-        public DateTime UpdatedDate { get; set; }
+        public DateTime UpdatedDate { get; set; } = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"));
 
         [ValidateNever]
         public ICollection<Product> Products { get; set; } = new List<Product>();

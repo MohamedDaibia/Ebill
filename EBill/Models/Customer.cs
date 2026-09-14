@@ -30,16 +30,19 @@ namespace EBill.Models
         public string? Gstin { get; set; }
 
         [ValidateNever]
-        public DateTime CreatedDate { get; set; }
+        public DateTime CreatedDate { get; set; } = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"));
 
         [ValidateNever]
-        public DateTime UpdatedDate { get; set; }
+        public DateTime UpdatedDate { get; set; }  = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"));
 
         [ValidateNever]
         public ICollection<Product> Products { get; set; } = new List<Product>();
 
         [ValidateNever]
         public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
+
+        [ValidateNever]
+        public ICollection<Quotation> Quotations { get; set; } = new List<Quotation>();
 
         [ValidateNever]
         public ICollection<Tax> Taxes { get; set; } = new List<Tax>();

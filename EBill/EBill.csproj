@@ -4,6 +4,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- This is hosted behind IIS/Kestrel (run via "dotnet EBill.dll"), so the
+         native apphost .exe isn't needed - skip generating it on build/publish. -->
+    <UseAppHost>false</UseAppHost>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +17,13 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Locally-uploaded company logos (wwwroot/uploads) are runtime data, not
+         part of the app - don't ship whatever happens to be on disk here into
+         the build/publish output. -->
+    <Content Remove="wwwroot/uploads/**" />
   </ItemGroup>
 
 </Project>

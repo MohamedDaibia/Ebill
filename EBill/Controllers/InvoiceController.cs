@@ -89,7 +89,18 @@ namespace EBill.Controllers
 
             // Products and Taxes are configured with DeleteBehavior.Restrict, so they
             // must be removed explicitly before the invoice itself can be deleted.
-            _db.Products.RemoveRange(invoice.Products);
+            // A product that's also linked to a quotation (see CreateFromQuotation)
+            // is only unlinked from this invoice, not deleted, since the quotation
+            // still needs it.
+            var sharedWithQuotation = invoice.Products.Where(p => p.QuotationId.HasValue).ToList();
+            var invoiceOnlyProducts = invoice.Products.Where(p => !p.QuotationId.HasValue).ToList();
+
+            foreach (var product in sharedWithQuotation)
+            {
+                product.InvoiceId = null;
+            }
+
+            _db.Products.RemoveRange(invoiceOnlyProducts);
             _db.Taxes.RemoveRange(invoice.Taxes);
             _db.Invoices.Remove(invoice);
 
@@ -117,6 +128,46 @@ namespace EBill.Controllers
             };
 
             _db.Invoices.Add(invoice);
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction("Index", "Product", new { invoiceId = invoice.Id });
+        }
+
+        // Bills out a quotation: creates a new invoice for the same customer and
+        // links the quotation's existing line items to it (rather than duplicating
+        // them), so the same Product rows are shared between the quotation and the
+        // invoice. The quotation record itself is left untouched.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateFromQuotation(int quotationId)
+        {
+            var quotation = await _db.Quotations
+                .Include(q => q.Products)
+                .FirstOrDefaultAsync(q => q.Id == quotationId);
+
+            if (quotation is null)
+            {
+                return NotFound();
+            }
+
+            var invoice = new Invoice
+            {
+                CustomerId = quotation.CustomerId,
+                QuotationId = quotation.Id,
+                Date = DateTime.UtcNow,
+                TotalAmount = quotation.Products.Sum(p => p.TotalAmount),
+            };
+
+            _db.Invoices.Add(invoice);
+            await _db.SaveChangesAsync();
+
+            // Link the quotation's line items to the new invoice - QuotationId stays
+            // set, so each Product row now belongs to both.
+            foreach (var item in quotation.Products)
+            {
+                item.InvoiceId = invoice.Id;
+            }
+
             await _db.SaveChangesAsync();
 
             return RedirectToAction("Index", "Product", new { invoiceId = invoice.Id });

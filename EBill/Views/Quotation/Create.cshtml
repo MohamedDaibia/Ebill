@@ -1,0 +1,56 @@
+@model EBill.Models.Customer
+@{
+    ViewData["Title"] = "Create Quotation";
+}
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div class="page-heading">
+                <span class="icon-badge icon-badge--orange">&#128221;</span>
+                <div>
+                    <h1 class="mb-0">Create Quotation</h1>
+                    <p class="text-muted mb-0">Enter the customer's details to start a new quotation.</p>
+                </div>
+            </div>
+            <a asp-controller="Quotation" asp-action="Index" class="show-invoices-link mt-1">Show Quotations</a>
+        </div>
+
+        <div class="form-card mt-3">
+            <form asp-controller="Quotation" asp-action="Create" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" placeholder="e.g. Ramesh Kumar Traders" maxlength="200" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Address" class="form-label"></label>
+                    <textarea asp-for="Address" class="form-control" rows="2" placeholder="Building, street, area (optional)" maxlength="500"></textarea>
+                    <span asp-validation-for="Address" class="text-danger"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="PhoneNumber" class="form-label"></label>
+                        <input asp-for="PhoneNumber" class="form-control" placeholder="+91 98765 43210 (optional)" maxlength="15" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Gstin" class="form-label"></label>
+                        <input asp-for="Gstin" class="form-control text-uppercase" placeholder="e.g. 22AAAAA0000A1Z5 (optional)" maxlength="15" />
+                        <span asp-validation-for="Gstin" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Continue</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
