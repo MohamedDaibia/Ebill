@@ -113,19 +113,51 @@ namespace EBill.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Customer model)
         {
+            var companyIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(companyIdClaim, out var companyId))
+            {
+                return Unauthorized();
+            }
+
+            model.CompanyId = companyId;
+
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
-            _db.Customers.Add(model);
+            // Phone number is unique per company, so a customer with this number may
+            // already exist here - most likely because the Create page's phone-number
+            // lookup (CustomerController.LookupByPhone) just auto-filled these very
+            // details from them. Reuse that record (refreshing it with whatever's on
+            // the form now) instead of trying to insert a second row, which would trip
+            // the unique (CompanyId, PhoneNumber) index.
+            var existingCustomer = await _db.Customers
+                .FirstOrDefaultAsync(c => c.CompanyId == companyId && c.PhoneNumber == model.PhoneNumber);
+
+            Customer customer;
+            if (existingCustomer is not null)
+            {
+                existingCustomer.Name = model.Name;
+                existingCustomer.Address = model.Address;
+                existingCustomer.Gstin = model.Gstin;
+                customer = existingCustomer;
+            }
+            else
+            {
+                _db.Customers.Add(model);
+                customer = model;
+            }
+
             await _db.SaveChangesAsync();
 
             var invoice = new Invoice
             {
-                CustomerId = model.Id,
+                CustomerId = customer.Id,
                 Date = DateTime.UtcNow,
             };
+
+            await AssignNextBillNumberAsync(invoice, companyId);
 
             _db.Invoices.Add(invoice);
             await _db.SaveChangesAsync();
@@ -158,6 +190,12 @@ namespace EBill.Controllers
                 TotalAmount = quotation.Products.Sum(p => p.TotalAmount),
             };
 
+            var companyIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(companyIdClaim, out var companyId))
+            {
+                await AssignNextBillNumberAsync(invoice, companyId);
+            }
+
             _db.Invoices.Add(invoice);
             await _db.SaveChangesAsync();
 
@@ -171,6 +209,21 @@ namespace EBill.Controllers
             await _db.SaveChangesAsync();
 
             return RedirectToAction("Index", "Product", new { invoiceId = invoice.Id });
+        }
+
+        // Pulls the next auto-numbering value from Settings (see
+        // SettingsController.UpdateNumbering) and stamps it onto the invoice, then
+        // advances the counter for next time. No-op (BillNumber stays blank, exactly
+        // like before this feature existed) if the company hasn't set a starting
+        // number yet.
+        private async Task AssignNextBillNumberAsync(Invoice invoice, int companyId)
+        {
+            var settings = await _db.Settings.FirstOrDefaultAsync(s => s.CompanyId == companyId);
+            if (settings?.NextInvoiceNumber is int nextNumber)
+            {
+                invoice.BillNumber = nextNumber.ToString();
+                settings.NextInvoiceNumber = nextNumber + 1;
+            }
         }
 
         [HttpGet]

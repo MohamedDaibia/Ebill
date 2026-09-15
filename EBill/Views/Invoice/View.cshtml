@@ -20,7 +20,7 @@
         <span class="icon-badge icon-badge--green">&#128196;</span>
         <div>
             <h1 class="mb-0">@invoiceHeading</h1>
-            <p class="text-muted mb-0">Invoice @Model.BillNumber</p>
+            <p class="text-muted mb-0">Invoice @Model.DisplayBillNumber</p>
         </div>
     </div>
     <div class="d-flex gap-3 invoice-nav-links mt-1 no-print">
@@ -66,7 +66,7 @@
             }
         </div>
         <div class="text-end invoice-meta-wrap">
-            <h5 class="mb-1">Invoice #@Model.BillNumber</h5>
+            <h5 class="mb-1">Invoice @Model.DisplayBillNumber</h5>
             <p class="mb-0 text-muted">Invoice Date: @Model.Date.ToString("dd MMM yyyy")</p>
         </div>
     </div>

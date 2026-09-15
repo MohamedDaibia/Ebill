@@ -16,6 +16,7 @@ namespace EBill.Data
         public DbSet<Quotation> Quotations => Set<Quotation>();
         public DbSet<Tax> Taxes => Set<Tax>();
         public DbSet<AccountingLink> AccountingLinks => Set<AccountingLink>();
+        public DbSet<Settings> Settings => Set<Settings>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -28,6 +29,31 @@ namespace EBill.Data
             modelBuilder.Entity<Customer>()
                 .HasIndex(c => c.CustomerNumber)
                 .IsUnique();
+
+            modelBuilder.Entity<Customer>()
+                .HasOne(c => c.Company)
+                .WithMany()
+                .HasForeignKey(c => c.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Phone number is mandatory (see Customer.cs) and unique per company - the
+            // same number can belong to different customers of different companies,
+            // just not twice within one company's own customer list.
+            modelBuilder.Entity<Customer>()
+                .HasIndex(c => new { c.CompanyId, c.PhoneNumber })
+                .IsUnique();
+
+            // One Settings row per Ebill company - Stock Management's connection info,
+            // if any (see Models/Settings.cs).
+            modelBuilder.Entity<Settings>()
+                .HasIndex(s => s.CompanyId)
+                .IsUnique();
+
+            modelBuilder.Entity<Settings>()
+                .HasOne(s => s.Company)
+                .WithOne(c => c.Settings)
+                .HasForeignKey<Settings>(s => s.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Invoice>()
                 .HasIndex(i => i.BillNumber)

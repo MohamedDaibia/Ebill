@@ -1,0 +1,76 @@
+@* Shared by Views/Invoice/Create.cshtml and Views/Quotation/Create.cshtml.
+   Once a full 10-digit mobile number is typed into #PhoneNumber, looks the
+   number up against this company's existing customers (api/Customer/LookupByPhone)
+   and, on a match, fills in Name/Address/GSTIN automatically. Silent on no match
+   or on a request failure - manual entry always still works. *@
+<script>
+    (function () {
+        var phoneInput = document.getElementById('PhoneNumber');
+        if (!phoneInput) {
+            return;
+        }
+
+        var nameInput = document.getElementById('Name');
+        var addressInput = document.getElementById('Address');
+        var gstinInput = document.getElementById('Gstin');
+        var statusEl = document.getElementById('customerLookupStatus');
+
+        var lookupTimer = null;
+        var lastLookedUp = '';
+
+        function normalizePhone(value) {
+            var digits = (value || '').replace(/\D/g, '');
+            if (digits.length === 12 && digits.indexOf('91') === 0) {
+                digits = digits.slice(2);
+            }
+            return digits;
+        }
+
+        function setStatus(text) {
+            if (statusEl) {
+                statusEl.textContent = text || '';
+            }
+        }
+
+        function runLookup() {
+            var normalized = normalizePhone(phoneInput.value);
+
+            if (normalized.length !== 10 || normalized === lastLookedUp) {
+                return;
+            }
+            lastLookedUp = normalized;
+
+            fetch('/api/Customer/LookupByPhone?phone=' + encodeURIComponent(normalized), {
+                headers: { 'Accept': 'application/json' }
+            })
+                .then(function (response) {
+                    return response.ok ? response.json() : null;
+                })
+                .then(function (customer) {
+                    if (!customer) {
+                        setStatus('');
+                        return;
+                    }
+
+                    if (nameInput) { nameInput.value = customer.name || ''; }
+                    if (addressInput) { addressInput.value = customer.address || ''; }
+                    if (gstinInput) { gstinInput.value = customer.gstin || ''; }
+
+                    setStatus('Existing customer found - details filled in automatically.');
+                })
+                .catch(function () {
+                    // Network/API hiccup - leave the form as-is, manual entry still works.
+                });
+        }
+
+        phoneInput.addEventListener('input', function () {
+            setStatus('');
+            if (lookupTimer) {
+                clearTimeout(lookupTimer);
+            }
+            lookupTimer = setTimeout(runLookup, 400);
+        });
+
+        phoneInput.addEventListener('blur', runLookup);
+    })();
+</script>

@@ -20,5 +20,10 @@ namespace EBill.Models
         // sent the user here to connect — carried through the form as a hidden
         // field so it survives the POST. See EbillConnectService.IsAllowedReturnUrl.
         public string? ReturnUrl { get; set; }
+
+        // The connecting app's own company id (e.g. Stock Management's), carried
+        // alongside ReturnUrl the same way, so EbillConnectService can save it onto
+        // this Ebill company once login succeeds - see Company.StockCompanyId.
+        public string? StockCompanyId { get; set; }
     }
 }

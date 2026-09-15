@@ -22,7 +22,7 @@
             @await Html.PartialAsync("_LoginForm", Model)
             <p class="mt-3 mb-0">
                 New company?
-                <a asp-controller="Company" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">Register here</a>
+                <a asp-controller="Company" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl" asp-route-stockCompanyId="@Model.StockCompanyId">Register here</a>
             </p>
         </div>
     </div>

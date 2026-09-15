@@ -31,12 +31,24 @@ namespace EBill.Controllers
 
         // returnUrl carried through from Login (see AccountController) when a
         // visitor without an Ebill account yet clicks "Register" mid-connect.
+        // stockCompanyId rides along the same way - see AccountController.Login.
         [HttpGet]
-        public IActionResult Register(string? returnUrl = null)
+        public IActionResult Register(string? returnUrl = null, string? stockCompanyId = null)
         {
+            // See AccountController.Login for why this guard exists: a stale AuthToken
+            // cookie makes this GET look "authenticated", which binds the antiforgery
+            // token generated here to that identity and breaks validation on POST.
+            if (Request.Cookies.ContainsKey("AuthToken"))
+            {
+                Response.Cookies.Delete("AuthToken");
+                return RedirectToAction(nameof(Register), new { returnUrl, stockCompanyId });
+            }
+
+            var isAllowed = _connectService.IsAllowedReturnUrl(returnUrl);
             var model = new Company
             {
-                ReturnUrl = _connectService.IsAllowedReturnUrl(returnUrl) ? returnUrl : null
+                ReturnUrl = isAllowed ? returnUrl : null,
+                StockCompanyId = isAllowed ? stockCompanyId : null
             };
             return View(model);
         }
@@ -96,7 +108,7 @@ namespace EBill.Controllers
             // them log in again right after.
             if (_connectService.IsAllowedReturnUrl(model.ReturnUrl))
             {
-                var redirectUrl = await _connectService.IssueTokenAndBuildRedirectUrlAsync(model, model.ReturnUrl!);
+                var redirectUrl = await _connectService.IssueTokenAndBuildRedirectUrlAsync(model, model.ReturnUrl!, model.StockCompanyId);
                 return Redirect(redirectUrl);
             }
 

@@ -126,6 +126,9 @@ namespace EBill.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
@@ -142,7 +145,8 @@ namespace EBill.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime>("UpdatedDate")
                         .HasColumnType("datetime2");
@@ -150,6 +154,9 @@ namespace EBill.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerNumber")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "PhoneNumber")
                         .IsUnique();
 
                     b.ToTable("Customers");
@@ -312,6 +319,50 @@ namespace EBill.Migrations
                     b.ToTable("Quotations");
                 });
 
+            modelBuilder.Entity("EBill.Models.Settings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsSynced")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("NextInvoiceNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("NextPurchaseOrderNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("NextQuotationNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StockCompanyId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .IsUnique();
+
+                    b.ToTable("Settings");
+                });
+
             modelBuilder.Entity("EBill.Models.Tax", b =>
                 {
                     b.Property<int>("Id")
@@ -348,6 +399,17 @@ namespace EBill.Migrations
                     b.HasIndex("InvoiceId");
 
                     b.ToTable("Taxes");
+                });
+
+            modelBuilder.Entity("EBill.Models.Customer", b =>
+                {
+                    b.HasOne("EBill.Models.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
                 });
 
             modelBuilder.Entity("EBill.Models.Invoice", b =>
@@ -404,6 +466,17 @@ namespace EBill.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("EBill.Models.Settings", b =>
+                {
+                    b.HasOne("EBill.Models.Company", "Company")
+                        .WithOne("Settings")
+                        .HasForeignKey("EBill.Models.Settings", "CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
             modelBuilder.Entity("EBill.Models.Tax", b =>
                 {
                     b.HasOne("EBill.Models.Customer", "Customer")
@@ -420,6 +493,11 @@ namespace EBill.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("EBill.Models.Company", b =>
+                {
+                    b.Navigation("Settings");
                 });
 
             modelBuilder.Entity("EBill.Models.Customer", b =>

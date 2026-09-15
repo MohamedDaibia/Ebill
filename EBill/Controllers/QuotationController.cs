@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using EBill.Data;
 using EBill.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -26,19 +27,54 @@ namespace EBill.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Customer model)
         {
+            var companyIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(companyIdClaim, out var companyId))
+            {
+                return Unauthorized();
+            }
+
+            model.CompanyId = companyId;
+
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
-            _db.Customers.Add(model);
+            // Same reuse-by-phone logic as InvoiceController.Create - see the comment
+            // there. Also fixes a pre-existing gap here: this action wasn't setting
+            // CompanyId at all before, so quotation-created customers weren't scoped
+            // to the company like everywhere else.
+            var existingCustomer = await _db.Customers
+                .FirstOrDefaultAsync(c => c.CompanyId == companyId && c.PhoneNumber == model.PhoneNumber);
+
+            Customer customer;
+            if (existingCustomer is not null)
+            {
+                existingCustomer.Name = model.Name;
+                existingCustomer.Address = model.Address;
+                existingCustomer.Gstin = model.Gstin;
+                customer = existingCustomer;
+            }
+            else
+            {
+                _db.Customers.Add(model);
+                customer = model;
+            }
+
             await _db.SaveChangesAsync();
 
             var quotation = new Quotation
             {
-                CustomerId = model.Id,
+                CustomerId = customer.Id,
                 Date = DateTime.UtcNow,
             };
+
+            var settings = await _db.Settings.FirstOrDefaultAsync(s => s.CompanyId == companyId);
+            if (settings?.NextQuotationNumber is int nextNumber)
+            {
+                quotation.QuotationNumber = nextNumber.ToString();
+                settings.NextQuotationNumber = nextNumber + 1;
+            }
 
             _db.Quotations.Add(quotation);
             await _db.SaveChangesAsync();

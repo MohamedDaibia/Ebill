@@ -26,6 +26,29 @@ namespace EBill.Models
         [Display(Name = "Bill Number")]
         public string BillNumber { get; set; } = string.Empty;
 
+        // Display-only formatting of BillNumber as "INV-000006" (six digits,
+        // zero-padded) wherever the invoice number is shown to the user. The raw
+        // BillNumber column keeps storing the plain number - see
+        // InvoiceController.AssignNextBillNumberAsync - so the auto-numbering
+        // counter in Settings still just does simple integer math. Falls back to
+        // the raw value if it's ever something non-numeric (e.g. legacy data),
+        // and to an empty string before a number has been assigned.
+        [NotMapped]
+        public string DisplayBillNumber
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(BillNumber))
+                {
+                    return string.Empty;
+                }
+
+                return int.TryParse(BillNumber, out var n)
+                    ? $"INV-{n:D6}"
+                    : BillNumber;
+            }
+        }
+
         [Required(ErrorMessage = "Date is required.")]
         public DateTime Date { get; set; }
 

@@ -29,12 +29,30 @@ namespace EBill.Controllers
         // returnUrl is set when another app (e.g. Stock Management's "Sync Ebill"
         // button) sent the user here to connect — only kept if it's on the
         // AllowedConnectOrigins allowlist, otherwise treated as if absent.
+        // stockCompanyId (the connecting app's own company id) rides along the same
+        // way, and is dropped whenever returnUrl itself isn't trusted.
         [HttpGet]
-        public IActionResult Login(string? returnUrl = null)
+        public IActionResult Login(string? returnUrl = null, string? stockCompanyId = null)
         {
+            // A stale AuthToken cookie left over from an earlier session makes this
+            // GET request look "authenticated" to the antiforgery system, which then
+            // binds the token it generates here to that identity. That identity isn't
+            // guaranteed to still match by the time the form POSTs back, which fails
+            // validation with "meant for a different claims-based user". Clearing the
+            // cookie and redirecting back to this same action makes the page (and its
+            // antiforgery token) render for a genuinely anonymous request instead, so
+            // it stays consistent with the anonymous POST that follows it.
+            if (Request.Cookies.ContainsKey("AuthToken"))
+            {
+                Response.Cookies.Delete("AuthToken");
+                return RedirectToAction(nameof(Login), new { returnUrl, stockCompanyId });
+            }
+
+            var isAllowed = _connectService.IsAllowedReturnUrl(returnUrl);
             var model = new LoginViewModel
             {
-                ReturnUrl = _connectService.IsAllowedReturnUrl(returnUrl) ? returnUrl : null
+                ReturnUrl = isAllowed ? returnUrl : null,
+                StockCompanyId = isAllowed ? stockCompanyId : null
             };
             return View(model);
         }
@@ -74,7 +92,7 @@ namespace EBill.Controllers
             // to whichever app sent the user here, instead of going to the invoice screen.
             if (_connectService.IsAllowedReturnUrl(model.ReturnUrl))
             {
-                var redirectUrl = await _connectService.IssueTokenAndBuildRedirectUrlAsync(company!, model.ReturnUrl!);
+                var redirectUrl = await _connectService.IssueTokenAndBuildRedirectUrlAsync(company!, model.ReturnUrl!, model.StockCompanyId);
                 return Redirect(redirectUrl);
             }
 

@@ -73,7 +73,7 @@
                             _ => "#8a8a8a",
                         };
                         <tr>
-                            <td>@invoice.BillNumber</td>
+                            <td>@invoice.DisplayBillNumber</td>
                             <td>@invoice.Customer?.Name</td>
                             <td>@invoice.Date.ToString("dd MMM yyyy")</td>
                             <td class="text-end">&#8377; @MoneyFormat.Format(grandTotal)</td>
@@ -83,7 +83,7 @@
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
                                     <a asp-controller="Invoice" asp-action="View" asp-route-id="@invoice.Id" class="btn btn-sm btn-outline-secondary">View</a>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteInvoiceModal" data-invoice-id="@invoice.Id" data-bill-number="@invoice.BillNumber" title="Delete invoice">Delete</button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteInvoiceModal" data-invoice-id="@invoice.Id" data-bill-number="@invoice.DisplayBillNumber" title="Delete invoice">Delete</button>
                                 </div>
                             </td>
                         </tr>

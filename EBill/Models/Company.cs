@@ -110,5 +110,20 @@ namespace EBill.Models
         [ValidateNever]
         [NotMapped]
         public string? ReturnUrl { get; set; }
+
+        // The connecting app's own company id (e.g. Stock Management's), carried
+        // through the Register form the same way ReturnUrl is above - never
+        // persisted directly on Company. EbillConnectService.IssueTokenAndBuild
+        // RedirectUrlAsync writes it onto the Settings row instead (see
+        // Models/Settings.cs) once registration succeeds.
+        [ValidateNever]
+        [NotMapped]
+        public string? StockCompanyId { get; set; }
+
+        // The Stock Management "connect" link (its company id + the refresh token it
+        // issued so Ebill can call its API) lives in its own Settings row now, same
+        // shape as Stock Management's own Settings model - see Models/Settings.cs.
+        [ValidateNever]
+        public Settings? Settings { get; set; }
     }
 }

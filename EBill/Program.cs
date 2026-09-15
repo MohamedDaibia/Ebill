@@ -19,6 +19,14 @@ builder.Services.AddScoped<IPasswordHasher<Company>, PasswordHasher<Company>>();
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<EbillConnectService>();
 
+// Server-to-server client for redeeming a company's stored Stock Management refresh
+// token (see Models/Settings.cs and Services/StockApiClient.cs) — base address from
+// "Stock:BaseUrl".
+builder.Services.AddHttpClient<StockApiClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Stock:BaseUrl"]!);
+});
+
 var jwtSection = builder.Configuration.GetSection("Jwt");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

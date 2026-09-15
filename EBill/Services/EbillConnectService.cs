@@ -1,5 +1,6 @@
 using EBill.Data;
 using EBill.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace EBill.Services
 {
@@ -43,13 +44,33 @@ namespace EBill.Services
 
         // Issues a fresh refresh token for `company` (persisting only its hash on
         // the company record) and appends it, plus the company's Ebill id, to
-        // returnUrl as query params for the caller to pick up.
-        public async Task<string> IssueTokenAndBuildRedirectUrlAsync(Company company, string returnUrl)
+        // returnUrl as query params for the caller to pick up. When the caller sent
+        // its own company id (stockCompanyId - currently only Stock Management does),
+        // that's saved into this company's Settings row too (creating it if needed),
+        // so Ebill's own Settings page can show the connection from its side as well.
+        // This only records WHICH Stock Management company connected - the refresh
+        // token Ebill needs to call back INTO Stock Management arrives separately,
+        // via StockSyncController.RegisterRefreshToken (Stock Management calls that
+        // itself right after this handshake, once it has an Ebill access token).
+        public async Task<string> IssueTokenAndBuildRedirectUrlAsync(Company company, string returnUrl, string? stockCompanyId = null)
         {
             var (plainText, hash) = RefreshTokenGenerator.Generate();
 
             company.RefreshTokenHash = hash;
             company.RefreshTokenExpiresAt = DateTime.UtcNow.Add(RefreshTokenLifetime);
+
+            if (!string.IsNullOrWhiteSpace(stockCompanyId) && company.Id != 0)
+            {
+                var settings = await _db.Settings.FirstOrDefaultAsync(s => s.CompanyId == company.Id);
+                if (settings is null)
+                {
+                    settings = new Models.Settings { CompanyId = company.Id };
+                    _db.Settings.Add(settings);
+                }
+
+                settings.StockCompanyId = stockCompanyId;
+            }
+
             await _db.SaveChangesAsync();
 
             var separator = returnUrl.Contains('?') ? "&" : "?";

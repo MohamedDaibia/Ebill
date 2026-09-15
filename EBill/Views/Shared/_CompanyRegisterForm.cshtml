@@ -2,6 +2,7 @@
 
 <form asp-controller="Company" asp-action="Register" method="post" enctype="multipart/form-data">
     <input type="hidden" asp-for="ReturnUrl" />
+    <input type="hidden" asp-for="StockCompanyId" />
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
     <div class="mb-3">

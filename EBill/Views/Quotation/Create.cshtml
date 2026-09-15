@@ -21,6 +21,13 @@
                 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
                 <div class="mb-3">
+                    <label asp-for="PhoneNumber" class="form-label"></label>
+                    <input asp-for="PhoneNumber" class="form-control" placeholder="+91 98765 43210" maxlength="15" autocomplete="off" />
+                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    <div id="customerLookupStatus" class="form-text text-success"></div>
+                </div>
+
+                <div class="mb-3">
                     <label asp-for="Name" class="form-label"></label>
                     <input asp-for="Name" class="form-control" placeholder="e.g. Ramesh Kumar Traders" maxlength="200" />
                     <span asp-validation-for="Name" class="text-danger"></span>
@@ -32,17 +39,10 @@
                     <span asp-validation-for="Address" class="text-danger"></span>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="PhoneNumber" class="form-label"></label>
-                        <input asp-for="PhoneNumber" class="form-control" placeholder="+91 98765 43210 (optional)" maxlength="15" />
-                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="Gstin" class="form-label"></label>
-                        <input asp-for="Gstin" class="form-control text-uppercase" placeholder="e.g. 22AAAAA0000A1Z5 (optional)" maxlength="15" />
-                        <span asp-validation-for="Gstin" class="text-danger"></span>
-                    </div>
+                <div class="mb-3">
+                    <label asp-for="Gstin" class="form-label"></label>
+                    <input asp-for="Gstin" class="form-control text-uppercase" placeholder="e.g. 22AAAAA0000A1Z5 (optional)" maxlength="15" />
+                    <span asp-validation-for="Gstin" class="text-danger"></span>
                 </div>
 
                 <button type="submit" class="btn btn-primary">Continue</button>
@@ -53,4 +53,5 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{await Html.RenderPartialAsync("_CustomerPhoneLookupScript");}
 }

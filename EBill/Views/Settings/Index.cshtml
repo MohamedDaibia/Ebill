@@ -1,0 +1,89 @@
+@model EBill.Models.Settings
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="page-heading">
+            <span class="icon-badge icon-badge--green">&#9881;&#65039;</span>
+            <div>
+                <h1 class="mb-0">Settings</h1>
+                <p class="text-muted mb-0">Connections between this Ebill account and other apps.</p>
+            </div>
+        </div>
+
+        <div class="form-card mt-3">
+            <h2 class="h5 mb-3">Document Numbering</h2>
+            <p class="text-muted small">
+                Set the next number to hand out for each document type. Leave a field blank to leave that
+                counter as it is. Each time a new document is created, the number shown here is used and then
+                automatically moves up by one.
+            </p>
+
+            @if (TempData["NumberingSaved"] != null)
+            {
+                <div class="alert alert-success" role="alert">Numbering settings saved.</div>
+            }
+            @if (TempData["NumberingError"] != null)
+            {
+                <div class="alert alert-danger" role="alert">@TempData["NumberingError"]</div>
+            }
+
+            <form asp-controller="Settings" asp-action="UpdateNumbering" method="post" class="row g-3">
+                @Html.AntiForgeryToken()
+                <div class="col-md-4">
+                    <label for="nextInvoiceNumber" class="form-label">Start With Invoice Number</label>
+                    <input type="number" min="1" class="form-control" id="nextInvoiceNumber"
+                           name="nextInvoiceNumber" value="@Model.NextInvoiceNumber"
+                           placeholder="Not set" />
+                </div>
+                <div class="col-md-4">
+                    <label for="nextQuotationNumber" class="form-label">Start With Quotation Number</label>
+                    <input type="number" min="1" class="form-control" id="nextQuotationNumber"
+                           name="nextQuotationNumber" value="@Model.NextQuotationNumber"
+                           placeholder="Not set" />
+                </div>
+                <div class="col-md-4">
+                    <label for="nextPurchaseOrderNumber" class="form-label">Start With Purchase Order Number</label>
+                    <input type="number" min="1" class="form-control" id="nextPurchaseOrderNumber"
+                           name="nextPurchaseOrderNumber" value="@Model.NextPurchaseOrderNumber"
+                           placeholder="Not set" />
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Save Numbering</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="form-card mt-3">
+            <h2 class="h5 mb-3">Stock Management</h2>
+
+            @if (string.IsNullOrEmpty(Model.StockCompanyId))
+            {
+                <div class="alert alert-info mb-0" role="alert">
+                    Not connected yet. Open Stock Management's Settings page and use
+                    <strong>Sync Ebill</strong> to connect it to this Ebill account.
+                </div>
+            }
+            else if (Model.IsSynced)
+            {
+                <div class="alert alert-success mb-0" role="alert">
+                    <strong>Connected</strong> &middot; Stock Management company #@Model.StockCompanyId
+                    <div class="small mt-1">Ebill can call Stock Management's API on this company's behalf.</div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning mb-0" role="alert">
+                    <strong>Linked, not fully connected</strong> &middot; Stock Management company #@Model.StockCompanyId
+                    <div class="small mt-1">
+                        Stock Management knows about this Ebill account, but hasn't finished handing Ebill
+                        an API connection yet. Try <strong>Sync Ebill</strong> again from Stock Management's
+                        Settings page.
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
