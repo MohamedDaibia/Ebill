@@ -23,6 +23,15 @@ namespace EBill.Models
         [ForeignKey(nameof(QuotationId))]
         public Quotation? Quotation { get; set; }
 
+        // Stock Management's own id for the dispatched item this line item was
+        // created from (see IDispatchService/InvoiceController.CreateFromDispatch) -
+        // null for a line item added manually (ProductController.Add/AddToQuotation),
+        // which never had a dispatch behind it. Unique (see ApplicationDbContext) so
+        // the same dispatched item can't be billed onto two different line items.
+        [StringLength(100, ErrorMessage = "Dispatch Product Id cannot exceed 100 characters.")]
+        [Display(Name = "Dispatch Product Id")]
+        public string? DispatchProductId { get; set; }
+
         [Required(ErrorMessage = "Description is required.")]
         [StringLength(300, ErrorMessage = "Description cannot exceed 300 characters.")]
         public string Description { get; set; } = string.Empty;

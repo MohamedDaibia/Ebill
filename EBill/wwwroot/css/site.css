@@ -89,6 +89,17 @@ body {
   color: var(--brand-white);
 }
 
+.btn-outline-orange {
+  color: var(--brand-orange-dark);
+  border-color: var(--brand-orange);
+}
+
+.btn-outline-orange:hover {
+  background-color: var(--brand-orange);
+  border-color: var(--brand-orange);
+  color: var(--brand-white);
+}
+
 /* Page heading */
 .page-heading {
   display: flex;

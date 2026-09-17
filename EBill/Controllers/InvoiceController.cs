@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using EBill.Data;
 using EBill.Models;
+using EBill.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,16 +12,157 @@ namespace EBill.Controllers
     public class InvoiceController : Controller
     {
         private readonly ApplicationDbContext _db;
+        private readonly IDispatchService _dispatchService;
 
-        public InvoiceController(ApplicationDbContext db)
+        public InvoiceController(ApplicationDbContext db, IDispatchService dispatchService)
         {
             _db = db;
+            _dispatchService = dispatchService;
         }
 
         [HttpGet]
         public IActionResult Create()
         {
             return View(new Customer());
+        }
+
+        // Reached from the "Create Invoice" button on the Customer List (only shown
+        // once this company is connected to Stock Management - see
+        // CustomersController.Index). Unlike the blank-form Create() above, the
+        // customer is already known; this page instead shows what Stock Management
+        // dispatched to them on the selected date (see IDispatchService - currently a
+        // placeholder) so an invoice can be built straight from that.
+        [HttpGet]
+        public async Task<IActionResult> CreateFromCustomer(int customerId, DateTime? date)
+        {
+            var companyIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(companyIdClaim, out var companyId))
+            {
+                return Unauthorized();
+            }
+
+            var customer = await _db.Customers
+                .FirstOrDefaultAsync(c => c.Id == customerId && c.CompanyId == companyId);
+
+            if (customer is null)
+            {
+                return NotFound();
+            }
+
+            // Dispatched items can only be pulled for a day that's already fully
+            // logged in Stock Management - today's (and any future) dispatches
+            // aren't final yet, so the filter is capped at yesterday. Defaults to
+            // yesterday when no date is given, and silently clamps down to it if
+            // someone requests today/a future date directly (e.g. by editing the
+            // URL - the date input itself also enforces this via its max attribute).
+            var maxAllowedDate = DateTime.Today.AddDays(-1);
+            var requestedDate = (date ?? maxAllowedDate).Date;
+            var selectedDate = requestedDate > maxAllowedDate ? maxAllowedDate : requestedDate;
+
+            var items = await _dispatchService.GetDispatchedItemsAsync(companyId, customerId, selectedDate);
+
+            return View(new CreateInvoiceFromDispatchViewModel
+            {
+                Customer = customer,
+                SelectedDate = selectedDate,
+                MaxSelectableDate = maxAllowedDate,
+                DateWasAdjusted = requestedDate > maxAllowedDate,
+                Items = items,
+            });
+        }
+
+        // Saves the invoice + one Product line item per row shown on
+        // CreateFromCustomer's page, then hands off to the existing Product/Index
+        // page (same place the blank-form Create() flow lands on) so tax
+        // calculation, viewing, etc. all keep working unchanged.
+        //
+        // Takes the line items from the posted form (items[0].Rate, items[1].Rate,
+        // ...) rather than re-querying IDispatchService, because the "Cost/Qty"
+        // input on that page lets the user edit each item's rate before creating
+        // the invoice - re-fetching would silently discard those edits. Same trust
+        // level as ProductController.Add's manual line-item entry: both accept
+        // whatever an authenticated company posts for its own invoice.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateFromDispatch(int customerId, DateTime date, List<DispatchLineItemInput> items)
+        {
+            var companyIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(companyIdClaim, out var companyId))
+            {
+                return Unauthorized();
+            }
+
+            var customer = await _db.Customers
+                .FirstOrDefaultAsync(c => c.Id == customerId && c.CompanyId == companyId);
+
+            if (customer is null)
+            {
+                return NotFound();
+            }
+
+            var selectedDate = date.Date;
+
+            if (items is null || !items.Any())
+            {
+                TempData["DispatchError"] = "No dispatched items found for that date - nothing to invoice.";
+                return RedirectToAction(nameof(CreateFromCustomer), new { customerId, date = selectedDate });
+            }
+
+            // DispatchProductId is unique per Product row (ApplicationDbContext), so
+            // billing the same dispatched item twice would otherwise fail with a raw
+            // DB exception. Checked up front so a re-submitted or already-invoiced
+            // page gives a plain error instead.
+            var dispatchIds = items
+                .Select(i => i.DispatchProductId)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToList();
+
+            if (dispatchIds.Count > 0)
+            {
+                var alreadyInvoiced = await _db.Products
+                    .Where(p => p.DispatchProductId != null && dispatchIds.Contains(p.DispatchProductId))
+                    .Select(p => p.DispatchProductId!)
+                    .ToListAsync();
+
+                if (alreadyInvoiced.Any())
+                {
+                    TempData["DispatchError"] = "One or more of these items have already been invoiced: " + string.Join(", ", alreadyInvoiced.Distinct()) + ".";
+                    return RedirectToAction(nameof(CreateFromCustomer), new { customerId, date = selectedDate });
+                }
+            }
+
+            var invoice = new Invoice
+            {
+                CustomerId = customer.Id,
+                Date = DateTime.UtcNow,
+            };
+
+            await AssignNextBillNumberAsync(invoice, companyId);
+
+            _db.Invoices.Add(invoice);
+            await _db.SaveChangesAsync();
+
+            foreach (var item in items)
+            {
+                _db.Products.Add(new Product
+                {
+                    CustomerId = customer.Id,
+                    InvoiceId = invoice.Id,
+                    DispatchProductId = string.IsNullOrWhiteSpace(item.DispatchProductId) ? null : item.DispatchProductId,
+                    Description = item.Description,
+                    HsnSac = item.HsnSac,
+                    Qty = item.Qty.ToString("0.##"),
+                    QtyType = item.QtyType,
+                    Rate = item.Rate,
+                    Discount = 0,
+                    TaxRate = GstRate.Zero,
+                    TotalAmount = item.Qty * item.Rate,
+                });
+            }
+
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction("Index", "Product", new { invoiceId = invoice.Id });
         }
 
         [HttpGet]

@@ -63,6 +63,16 @@ namespace EBill.Data
                 .HasIndex(q => q.QuotationNumber)
                 .IsUnique();
 
+            // Nullable - a manually-entered line item (ProductController.Add/
+            // AddToQuotation) never has one, and SQL Server's default unique-index
+            // behavior already allows any number of NULLs alongside it. Only
+            // non-null values (dispatch-sourced line items) are required to be
+            // distinct, which is what stops the same dispatched item being billed
+            // twice.
+            modelBuilder.Entity<Product>()
+                .HasIndex(p => p.DispatchProductId)
+                .IsUnique();
+
             modelBuilder.Entity<Invoice>()
                 .Property(i => i.PaymentStatus)
                 .HasConversion<string>()

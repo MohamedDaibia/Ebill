@@ -87,6 +87,12 @@ namespace EBill.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("PasswordResetTokenExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PasswordResetTokenHash")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -238,6 +244,10 @@ namespace EBill.Migrations
                     b.Property<decimal>("Discount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("DispatchProductId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("HsnSac")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -273,6 +283,10 @@ namespace EBill.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("DispatchProductId")
+                        .IsUnique()
+                        .HasFilter("[DispatchProductId] IS NOT NULL");
 
                     b.HasIndex("InvoiceId");
 

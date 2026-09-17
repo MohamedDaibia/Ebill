@@ -1,0 +1,206 @@
+@model EBill.Models.CreateInvoiceFromDispatchViewModel
+@{
+    ViewData["Title"] = "Create Invoice";
+    var customer = Model.Customer;
+}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div class="page-heading">
+        <span class="icon-badge icon-badge--orange">&#128230;</span>
+        <div>
+            <h1 class="mb-0">Create Invoice</h1>
+            <p class="text-muted mb-0">Items Stock Management dispatched to @customer.Name.</p>
+        </div>
+    </div>
+    <a asp-controller="Customers" asp-action="Index" class="btn btn-outline-secondary btn-sm mt-1">Back to Customers</a>
+</div>
+
+@if (TempData["DispatchError"] is string dispatchError)
+{
+    <div class="alert alert-danger mt-3 mb-0">@dispatchError</div>
+}
+
+@if (Model.DateWasAdjusted)
+{
+    <div class="alert alert-warning mt-3 mb-0">Today's and future dates aren't available yet - showing @Model.SelectedDate.ToString("dd MMM yyyy") instead.</div>
+}
+
+<div class="form-card mt-3">
+    <div class="row g-3 customer-details-row">
+        <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase">Customer Name</div>
+            <div class="fw-semibold text-truncate">@customer.Name</div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase">Phone Number</div>
+            <div class="fw-semibold text-truncate">@customer.PhoneNumber</div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase">GSTIN</div>
+            <div class="fw-semibold text-truncate">@(string.IsNullOrWhiteSpace(customer.Gstin) ? "-" : customer.Gstin)</div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase">Address</div>
+            <div class="fw-semibold text-truncate">@(string.IsNullOrWhiteSpace(customer.Address) ? "-" : customer.Address)</div>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info mt-3 mb-0">
+    Showing placeholder sample data - Stock Management doesn't have a dispatched-items API for Ebill to call yet.
+    Once that's connected, this list will show what was actually dispatched to @customer.Name on the selected date.
+</div>
+
+<div class="form-card mt-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h5 class="mb-0">Dispatched Items</h5>
+        <form asp-controller="Invoice" asp-action="CreateFromCustomer" method="get" class="d-flex align-items-center gap-2">
+            <input type="hidden" name="customerId" value="@customer.Id" />
+            <label for="dispatchDate" class="form-label mb-0 text-muted small text-uppercase">Date</label>
+            <input type="date" id="dispatchDate" name="date" class="form-control form-control-sm"
+                   value="@Model.SelectedDate.ToString("yyyy-MM-dd")" max="@Model.MaxSelectableDate.ToString("yyyy-MM-dd")" />
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Go</button>
+        </form>
+    </div>
+
+    @if (!Model.Items.Any())
+    {
+        <p class="text-muted text-center py-4 mb-0">No items dispatched to this customer on @Model.SelectedDate.ToString("dd MMM yyyy").</p>
+    }
+    else
+    {
+        <form asp-controller="Invoice" asp-action="CreateFromDispatch" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="customerId" value="@customer.Id" />
+            <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+
+            <div class="table-responsive">
+                <table class="table align-middle" id="dispatchItemsTable">
+                    <thead>
+                        <tr style="background-color: var(--brand-green-light);">
+                            <th>#</th>
+                            <th>Description</th>
+                            <th>HSN/SAC</th>
+                            <th class="text-end">Qty</th>
+                            <th>Qty Type</th>
+                            <th>Dispatched Date</th>
+                            <th class="text-end">Cost/Qty (&#8377;)</th>
+                            <th class="text-end">Total Cost (&#8377;)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ var index = 0; }
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>
+                                    @(index + 1)
+                                    <input type="hidden" name="items[@index].DispatchProductId" value="@item.DispatchProductId" />
+                                </td>
+                                <td>
+                                    @item.Description
+                                    <input type="hidden" name="items[@index].Description" value="@item.Description" />
+                                </td>
+                                <td>
+                                    @item.HsnSac
+                                    <input type="hidden" name="items[@index].HsnSac" value="@item.HsnSac" />
+                                </td>
+                                <td class="text-end">
+                                    @item.Qty.ToString("0.##")
+                                    <input type="hidden" name="items[@index].Qty" value="@item.Qty.ToString("0.####")" />
+                                </td>
+                                <td>
+                                    @item.QtyType
+                                    <input type="hidden" name="items[@index].QtyType" value="@item.QtyType" />
+                                </td>
+                                <td>
+                                    @item.DispatchedDate.ToString("dd MMM yyyy")
+                                    <input type="hidden" name="items[@index].DispatchedDate" value="@item.DispatchedDate.ToString("yyyy-MM-dd")" />
+                                </td>
+                                <td class="text-end">
+                                    <input type="number" step="0.01" min="0"
+                                           class="form-control form-control-sm text-end cost-input"
+                                           style="max-width: 110px; display: inline-block;"
+                                           name="items[@index].Rate" value="@item.Rate.ToString("0.00")"
+                                           data-qty="@item.Qty.ToString("0.####")" data-row="@index" />
+                                </td>
+                                <td class="text-end">
+                                    <span class="total-cost-value fw-semibold" data-row="@index">&#8377; @item.Amount.ToString("0.00")</span>
+                                </td>
+                            </tr>
+                            index++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-sm-end align-items-sm-center mt-2">
+                <button type="button" id="calculateAmountBtn" class="btn btn-primary">Calculate Amount</button>
+            </div>
+
+            <div id="amountSummary" class="form-card form-card--orange mt-3 d-none">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Total Amount</span>
+                    <span class="fs-5 fw-bold" id="amountSummaryValue">&#8377; 0.00</span>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-sm-end mt-4">
+                <button type="submit" class="btn btn-outline-orange">Create Invoice</button>
+            </div>
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const dateInput = document.getElementById('dispatchDate');
+            if (dateInput) {
+                dateInput.addEventListener('change', function () {
+                    dateInput.form.submit();
+                });
+            }
+
+            function formatMoney(n) {
+                return Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            const amountSummary = document.getElementById('amountSummary');
+
+            // Recalculates one row's Total Cost as its Cost/Qty input changes, and
+            // hides the (now stale) overall total until Calculate Amount is pressed
+            // again.
+            document.querySelectorAll('.cost-input').forEach(function (input) {
+                input.addEventListener('input', function () {
+                    const row = input.dataset.row;
+                    const qty = parseFloat(input.dataset.qty) || 0;
+                    const rate = parseFloat(input.value) || 0;
+                    const cell = document.querySelector('.total-cost-value[data-row="' + row + '"]');
+                    if (cell) {
+                        cell.textContent = '₹ ' + formatMoney(qty * rate);
+                    }
+                    if (amountSummary) {
+                        amountSummary.classList.add('d-none');
+                    }
+                });
+            });
+
+            const calculateBtn = document.getElementById('calculateAmountBtn');
+            if (calculateBtn) {
+                calculateBtn.addEventListener('click', function () {
+                    const inputs = document.querySelectorAll('#dispatchItemsTable .cost-input');
+                    let total = 0;
+                    inputs.forEach(function (input) {
+                        const qty = parseFloat(input.dataset.qty) || 0;
+                        const rate = parseFloat(input.value) || 0;
+                        total += qty * rate;
+                    });
+
+                    document.getElementById('amountSummaryValue').textContent = '₹ ' + formatMoney(total);
+                    amountSummary.classList.remove('d-none');
+                });
+            }
+        })();
+    </script>
+}

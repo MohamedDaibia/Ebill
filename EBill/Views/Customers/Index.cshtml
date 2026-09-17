@@ -24,7 +24,6 @@
         <table class="table align-middle invoice-list-table">
             <thead>
                 <tr style="background-color: var(--brand-green-light);">
-                    <th>Customer No.</th>
                     <th>Name</th>
                     <th>Phone Number</th>
                     <th>GSTIN</th>
@@ -36,7 +35,7 @@
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">No customers yet. Add one, or start an invoice/quotation to create one automatically.</td>
+                        <td colspan="5" class="text-center text-muted py-4">No customers yet. Add one, or start an invoice/quotation to create one automatically.</td>
                     </tr>
                 }
                 else
@@ -44,7 +43,6 @@
                     @foreach (var customer in Model)
                     {
                         <tr>
-                            <td>@customer.CustomerNumber</td>
                             <td>@customer.Name</td>
                             <td>@customer.PhoneNumber</td>
                             <td>@customer.Gstin</td>
@@ -53,6 +51,10 @@
                                 <div class="d-flex justify-content-end gap-2">
                                     <a asp-controller="Customers" asp-action="Edit" asp-route-id="@customer.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
                                     <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCustomerModal" data-customer-id="@customer.Id" data-customer-name="@customer.Name" title="Delete customer">Delete</button>
+                                    @if ((bool)(ViewData["InventoryConnected"] ?? false))
+                                    {
+                                        <a asp-controller="Invoice" asp-action="CreateFromCustomer" asp-route-customerId="@customer.Id" class="btn btn-sm btn-outline-orange">Create Invoice</a>
+                                    }
                                 </div>
                             </td>
                         </tr>

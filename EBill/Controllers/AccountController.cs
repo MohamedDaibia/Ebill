@@ -13,17 +13,20 @@ namespace EBill.Controllers
         private readonly IPasswordHasher<Company> _passwordHasher;
         private readonly JwtTokenService _tokenService;
         private readonly EbillConnectService _connectService;
+        private readonly IEmailSender _emailSender;
 
         public AccountController(
             ApplicationDbContext db,
             IPasswordHasher<Company> passwordHasher,
             JwtTokenService tokenService,
-            EbillConnectService connectService)
+            EbillConnectService connectService,
+            IEmailSender emailSender)
         {
             _db = db;
             _passwordHasher = passwordHasher;
             _tokenService = tokenService;
             _connectService = connectService;
+            _emailSender = emailSender;
         }
 
         // returnUrl is set when another app (e.g. Stock Management's "Sync Ebill"
@@ -103,6 +106,111 @@ namespace EBill.Controllers
         {
             Response.Cookies.Delete("AuthToken");
             return RedirectToAction("Index", "Home");
+        }
+
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            return View(new ForgotPasswordViewModel());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var company = await _db.Companies.FirstOrDefaultAsync(c => c.Email == model.Email);
+
+            // Always redirect to the same confirmation regardless of whether the
+            // email matched a company, so this form can't be used to discover which
+            // addresses are registered.
+            if (company is not null)
+            {
+                var (plainText, hash) = PasswordResetTokenGenerator.Generate();
+                company.PasswordResetTokenHash = hash;
+                company.PasswordResetTokenExpiresAt = DateTime.UtcNow.Add(PasswordResetTokenGenerator.TokenLifetime);
+                await _db.SaveChangesAsync();
+
+                var resetUrl = Url.Action(nameof(ResetPassword), "Account",
+                    new { email = company.Email, token = plainText }, protocol: Request.Scheme)!;
+
+                var body = $"<p>Hello {System.Net.WebUtility.HtmlEncode(company.CompanyName)},</p>" +
+                    "<p>We received a request to reset your EBill password. Click the link below to choose a new one:</p>" +
+                    $"<p><a href=\"{resetUrl}\">Reset your password</a></p>" +
+                    "<p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>";
+
+                try
+                {
+                    await _emailSender.SendAsync(company.Email, "Reset your EBill password", body);
+                }
+                catch
+                {
+                    // Swallowed for the same reason the confirmation message below
+                    // doesn't vary — surfacing a mail-send failure here would leak
+                    // whether the address exists. If reset emails aren't arriving,
+                    // check the Smtp:* settings in appsettings.json.
+                }
+            }
+
+            return RedirectToAction(nameof(ForgotPasswordConfirmation));
+        }
+
+        [HttpGet]
+        public IActionResult ForgotPasswordConfirmation()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        public IActionResult ResetPassword(string? email = null, string? token = null)
+        {
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
+            {
+                return RedirectToAction(nameof(ForgotPassword));
+            }
+
+            return View(new ResetPasswordViewModel { Email = email, Token = token });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var company = await _db.Companies.FirstOrDefaultAsync(c => c.Email == model.Email);
+
+            var tokenOk = company?.PasswordResetTokenHash is not null &&
+                company.PasswordResetTokenExpiresAt is not null &&
+                company.PasswordResetTokenExpiresAt > DateTime.UtcNow &&
+                company.PasswordResetTokenHash == PasswordResetTokenGenerator.Hash(model.Token);
+
+            if (!tokenOk)
+            {
+                ModelState.AddModelError(string.Empty,
+                    "This password reset link is invalid or has expired. Please request a new one.");
+                return View(model);
+            }
+
+            company!.PasswordHash = _passwordHasher.HashPassword(company, model.Password);
+            company.PasswordResetTokenHash = null;
+            company.PasswordResetTokenExpiresAt = null;
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction(nameof(ResetPasswordConfirmation));
+        }
+
+        [HttpGet]
+        public IActionResult ResetPasswordConfirmation()
+        {
+            return View();
         }
     }
 }

@@ -18,6 +18,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<IPasswordHasher<Company>, PasswordHasher<Company>>();
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<EbillConnectService>();
+builder.Services.AddScoped<IDispatchService, DispatchService>();
+
+// Sends the "reset your password" email from AccountController.ForgotPassword.
+// Configured via the "Smtp" section in appsettings.json.
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
 // Server-to-server client for redeeming a company's stored Stock Management refresh
 // token (see Models/Settings.cs and Services/StockApiClient.cs) — base address from

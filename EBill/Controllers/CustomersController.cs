@@ -36,6 +36,13 @@ namespace EBill.Controllers
                 .OrderBy(c => c.Name)
                 .ToListAsync();
 
+            // Drives whether the "Create Invoice" button shows on each row - only
+            // once this Ebill company is actually connected to Stock Management
+            // (inventory), same condition Settings/Index.cshtml uses for its
+            // "Connected" state.
+            var settings = await _db.Settings.FirstOrDefaultAsync(s => s.CompanyId == companyId);
+            ViewData["InventoryConnected"] = settings?.IsSynced ?? false;
+
             return View(customers);
         }
 

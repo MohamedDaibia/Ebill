@@ -104,6 +104,16 @@ namespace EBill.Models
         [ValidateNever]
         public DateTime? RefreshTokenExpiresAt { get; set; }
 
+        // Password-reset flow (AccountController.ForgotPassword/ResetPassword): only
+        // a hash of the reset token is stored here — the plaintext value is emailed
+        // to the company once, at request time, and never persisted as-is. Same
+        // shape as RefreshTokenHash above.
+        [ValidateNever]
+        public string? PasswordResetTokenHash { get; set; }
+
+        [ValidateNever]
+        public DateTime? PasswordResetTokenExpiresAt { get; set; }
+
         // Where to send the user back after login/registration when this request
         // came from an external app's "connect" flow. Never persisted — validated
         // against AllowedConnectOrigins (see EbillConnectService) before use.
