@@ -19,7 +19,7 @@
     {
         var subtotal = invoice.Products.Sum(p => p.TotalAmount);
         var tax = invoice.Taxes.FirstOrDefault();
-        return tax is null ? subtotal : subtotal + tax.TotalTax;
+        return (tax is null ? subtotal : subtotal + tax.TotalTax) + invoice.AdditionalCost;
     }
 }
 

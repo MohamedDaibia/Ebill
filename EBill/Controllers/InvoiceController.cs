@@ -30,8 +30,8 @@ namespace EBill.Controllers
         // once this company is connected to Stock Management - see
         // CustomersController.Index). Unlike the blank-form Create() above, the
         // customer is already known; this page instead shows what Stock Management
-        // dispatched to them on the selected date (see IDispatchService - currently a
-        // placeholder) so an invoice can be built straight from that.
+        // dispatched to them on the selected date (see IDispatchService/
+        // DispatchService) so an invoice can be built straight from that.
         [HttpGet]
         public async Task<IActionResult> CreateFromCustomer(int customerId, DateTime? date)
         {
@@ -55,7 +55,7 @@ namespace EBill.Controllers
             // yesterday when no date is given, and silently clamps down to it if
             // someone requests today/a future date directly (e.g. by editing the
             // URL - the date input itself also enforces this via its max attribute).
-            var maxAllowedDate = DateTime.Today.AddDays(-1);
+            var maxAllowedDate = DateTime.Today;
             var requestedDate = (date ?? maxAllowedDate).Date;
             var selectedDate = requestedDate > maxAllowedDate ? maxAllowedDate : requestedDate;
 
@@ -68,6 +68,46 @@ namespace EBill.Controllers
                 MaxSelectableDate = maxAllowedDate,
                 DateWasAdjusted = requestedDate > maxAllowedDate,
                 Items = items,
+            });
+        }
+
+        // Reached via the "Invoice Items" link on CreateFromCustomer, next to
+        // "Dispatched Items" - shows just the items for this customer/date that have
+        // ALREADY been invoiced, which CreateFromCustomer's own table no longer lists
+        // (it now only shows pending ones, so the form there always maps directly to
+        // "items still to bill"). Reuses the same view model and IDispatchService
+        // lookup as CreateFromCustomer since the underlying data (and date paging) is
+        // identical - just filtered the other way.
+        [HttpGet]
+        public async Task<IActionResult> InvoicedItems(int customerId, DateTime? date)
+        {
+            var companyIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(companyIdClaim, out var companyId))
+            {
+                return Unauthorized();
+            }
+
+            var customer = await _db.Customers
+                .FirstOrDefaultAsync(c => c.Id == customerId && c.CompanyId == companyId);
+
+            if (customer is null)
+            {
+                return NotFound();
+            }
+
+            var maxAllowedDate = DateTime.Today;
+            var requestedDate = (date ?? maxAllowedDate).Date;
+            var selectedDate = requestedDate > maxAllowedDate ? maxAllowedDate : requestedDate;
+
+            var items = await _dispatchService.GetDispatchedItemsAsync(companyId, customerId, selectedDate);
+
+            return View(new CreateInvoiceFromDispatchViewModel
+            {
+                Customer = customer,
+                SelectedDate = selectedDate,
+                MaxSelectableDate = maxAllowedDate,
+                DateWasAdjusted = requestedDate > maxAllowedDate,
+                Items = items.Where(i => i.IsInvoiced).ToList(),
             });
         }
 
@@ -168,10 +208,11 @@ namespace EBill.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(int? days)
         {
+            int? Companyid = GetCompanyId();
             var query = _db.Invoices
                 .Include(i => i.Customer)
                 .Include(i => i.Products)
-                .Include(i => i.Taxes)
+                .Include(i => i.Taxes).Where(i => i.Customer.CompanyId == Companyid)
                 .AsQueryable();
 
             if (days.HasValue && days.Value > 0)
@@ -217,7 +258,7 @@ namespace EBill.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id, int? days)
+        public async Task<IActionResult> Delete(int id, int? days, int? customerId)
         {
             var invoice = await _db.Invoices
                 .Include(i => i.Products)
@@ -248,7 +289,7 @@ namespace EBill.Controllers
 
             await _db.SaveChangesAsync();
 
-            return RedirectToAction(nameof(Index), new { days });
+            return RedirectToAction(nameof(Index), new { days, customerId });
         }
 
         [HttpPost]
@@ -306,11 +347,7 @@ namespace EBill.Controllers
 
             return RedirectToAction("Index", "Product", new { invoiceId = invoice.Id });
         }
-
-        // Bills out a quotation: creates a new invoice for the same customer and
-        // links the quotation's existing line items to it (rather than duplicating
-        // them), so the same Product rows are shared between the quotation and the
-        // invoice. The quotation record itself is left untouched.
+  
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateFromQuotation(int quotationId)
@@ -446,6 +483,12 @@ namespace EBill.Controllers
             await _db.SaveChangesAsync();
 
             return Ok(new { success = true });
+        }
+
+        private int? GetCompanyId()
+        {
+            var companyIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(companyIdClaim, out var companyId) ? companyId : null;
         }
     }
 }

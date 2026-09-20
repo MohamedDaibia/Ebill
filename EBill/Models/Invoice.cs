@@ -56,6 +56,18 @@ namespace EBill.Models
         [Display(Name = "Total Amount")]
         public decimal TotalAmount { get; set; }
 
+        // Extra charge on top of the line items and tax (e.g. freight, packing,
+        // installation), entered on the Products page. It is NOT taxed - it is added
+        // to the Grand Total after CGST/SGST. AdditionalCostLabel is the optional
+        // name shown next to it on the invoice (falls back to "Additional Cost").
+        [Range(0, double.MaxValue, ErrorMessage = "Additional cost cannot be negative.")]
+        [Display(Name = "Additional Cost")]
+        public decimal AdditionalCost { get; set; }
+
+        [StringLength(100, ErrorMessage = "Additional cost description cannot exceed 100 characters.")]
+        [Display(Name = "Additional Cost Description")]
+        public string? AdditionalCostLabel { get; set; }
+
         [Range(0, double.MaxValue, ErrorMessage = "Amount paid cannot be negative.")]
         [Display(Name = "Amount Paid")]
         public decimal AmountPaid { get; set; }

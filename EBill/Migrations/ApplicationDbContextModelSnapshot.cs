@@ -176,6 +176,13 @@ namespace EBill.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("AdditionalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("AdditionalCostLabel")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<decimal>("AmountPaid")
                         .HasColumnType("decimal(18,2)");
 

@@ -401,6 +401,19 @@ body {
     width: 100%;
   }
 
+  /* All data tables, site-wide - Bootstrap's .table only draws a line under each
+     row, which gets hard to read once cells are this narrow, so give every table
+     a full grid of borders on mobile. table-borderless summaries (e.g. Product/
+     Index's Tax Summary) opt out since those are meant to stay plain. */
+  .table:not(.table-borderless) {
+    border-collapse: collapse;
+  }
+
+  .table:not(.table-borderless) th,
+  .table:not(.table-borderless) td {
+    border: 1px solid rgba(0, 0, 0, 0.15);
+  }
+
   /* Products page: customer details strip */
   .customer-details-row .text-uppercase {
     font-size: 0.68rem;
@@ -737,4 +750,15 @@ body {
   body {
     padding: 12mm !important;
   }
+}
+
+/* Number inputs without the browser's up/down spinner arrows. */
+input.no-spinner::-webkit-outer-spin-button,
+input.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input.no-spinner[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }

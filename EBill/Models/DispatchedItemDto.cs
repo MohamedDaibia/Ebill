@@ -1,14 +1,9 @@
 namespace EBill.Models
 {
-    // One line item dispatched to a customer, as Stock Management would report it for
-    // the Create Invoice ("connected with inventory") flow - see IDispatchService.
-    //
-    // PLACEHOLDER DATA SOURCE: Stock Management doesn't yet expose an API for
-    // "dispatched items for a customer on a date", so DispatchService currently
-    // returns made-up sample rows shaped like this DTO purely so this page can be
-    // built and previewed today. Once that endpoint exists, replace
-    // DispatchService's implementation with a real StockApiClient call and adjust
-    // these fields to match whatever it actually returns.
+    // One line item dispatched to a customer, as Stock Management reports it for the
+    // Create Invoice ("connected with inventory") flow - see IDispatchService/
+    // DispatchService, which map this from StockDispatchResultDto (Stock Management's
+    // GET api/Dispatch/GetDispatchesForCustomer response).
     public class DispatchedItemDto
     {
         // Stock Management's own id for this dispatched item - carried onto the
@@ -33,5 +28,16 @@ namespace EBill.Models
         public decimal Rate { get; set; }
 
         public decimal Amount => Qty * Rate;
+
+        // Set when this dispatch has already been billed onto a Product row
+        // (DispatchProductId is unique - see ApplicationDbContext) - the row still
+        // shows on the Create Invoice page, but as read-only history with a link to
+        // InvoiceId/InvoiceNumber instead of an editable line the "Create Invoice"
+        // button would bill again.
+        public bool IsInvoiced { get; set; }
+
+        public int? InvoiceId { get; set; }
+
+        public string? InvoiceNumber { get; set; }
     }
 }

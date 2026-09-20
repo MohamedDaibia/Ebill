@@ -1,0 +1,105 @@
+@model EBill.Models.CreateInvoiceFromDispatchViewModel
+@{
+    ViewData["Title"] = "Invoice Items";
+    var customer = Model.Customer;
+}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div class="page-heading">
+        <span class="icon-badge icon-badge--orange">&#128230;</span>
+        <div>
+            <h1 class="mb-0">Invoiced Items</h1>
+            <p class="text-muted mb-0">Items already invoiced for @customer.Name.</p>
+        </div>
+    </div>
+    <a asp-controller="Invoice" asp-action="CreateFromCustomer" asp-route-customerId="@customer.Id" asp-route-date="@Model.SelectedDate.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary btn-sm mt-1">Back to Create Invoice</a>
+</div>
+
+@if (Model.DateWasAdjusted)
+{
+    <div class="alert alert-warning mt-3 mb-0">Today's and future dates aren't available yet - showing @Model.SelectedDate.ToString("dd MMM yyyy") instead.</div>
+}
+
+<div class="form-card mt-3">
+    <div class="row g-3 customer-details-row">
+        <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase">Customer Name</div>
+            <div class="fw-semibold text-truncate">@customer.Name</div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase">Phone Number</div>
+            <div class="fw-semibold text-truncate">@customer.PhoneNumber</div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase">GSTIN</div>
+            <div class="fw-semibold text-truncate">@(string.IsNullOrWhiteSpace(customer.Gstin) ? "-" : customer.Gstin)</div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="text-muted small text-uppercase">Address</div>
+            <div class="fw-semibold text-truncate">@(string.IsNullOrWhiteSpace(customer.Address) ? "-" : customer.Address)</div>
+        </div>
+    </div>
+</div>
+
+<div class="form-card mt-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h5 class="mb-0">Invoiced Items</h5>
+        <form asp-controller="Invoice" asp-action="InvoicedItems" method="get" class="d-flex align-items-center gap-2">
+            <input type="hidden" name="customerId" value="@customer.Id" />
+            <label for="dispatchDate" class="form-label mb-0 text-muted small text-uppercase">Date</label>
+            <input type="date" id="dispatchDate" name="date" class="form-control form-control-sm"
+                   value="@Model.SelectedDate.ToString("yyyy-MM-dd")" max="@Model.MaxSelectableDate.ToString("yyyy-MM-dd")" />
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Go</button>
+        </form>
+    </div>
+
+    @if (!Model.Items.Any())
+    {
+        <p class="text-muted text-center py-4 mb-0">No invoiced items for this customer on @Model.SelectedDate.ToString("dd MMM yyyy").</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr style="background-color: var(--brand-green-light);">
+                        <th>#</th>
+                        <th>Description</th>
+                        <th>HSN/SAC</th>
+                        <th class="text-end">Qty</th>
+                        <th class="d-none d-md-table-cell">Qty Type</th>
+                        <th class="d-none d-md-table-cell">Dispatched Date</th>
+                        <th class="text-end">Cost/Qty (&#8377;)</th>
+                        <th class="text-end">Total Cost (&#8377;)</th>
+                        <th>Invoice</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ var rowNumber = 0; }
+                    @foreach (var item in Model.Items)
+                    {
+                        rowNumber++;
+                        <tr>
+                            <td>@rowNumber</td>
+                            <td>@item.Description</td>
+                            <td>@(string.IsNullOrEmpty(item.HsnSac) ? "-" : item.HsnSac)</td>
+                            <td class="text-end">
+                                @item.Qty.ToString("0.##")
+                                <div class="d-md-none text-muted small">@item.QtyType</div>
+                            </td>
+                            <td class="d-none d-md-table-cell">@item.QtyType</td>
+                            <td class="d-none d-md-table-cell">@item.DispatchedDate.ToString("dd MMM yyyy")</td>
+                            <td class="text-end">&#8377; @item.Rate.ToString("0.00")</td>
+                            <td class="text-end">&#8377; @item.Amount.ToString("0.00")</td>
+                            <td>
+                                <a asp-controller="Invoice" asp-action="View" asp-route-id="@item.InvoiceId">
+                                    @(string.IsNullOrEmpty(item.InvoiceNumber) ? $"#{item.InvoiceId}" : item.InvoiceNumber)
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

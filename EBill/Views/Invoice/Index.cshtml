@@ -11,7 +11,7 @@
         <span class="icon-badge icon-badge--green">&#128203;</span>
         <div>
             <h1 class="mb-0">Invoices</h1>
-            <p class="text-muted mb-0">Browse your invoices, filtered by date.</p>
+                <p class="text-muted mb-0">Browse your invoices, filtered by date.</p>            
         </div>
     </div>
     <a asp-controller="Invoice" asp-action="Create" class="btn btn-outline-secondary btn-sm mt-1">+ New Invoice</a>
@@ -32,11 +32,11 @@
             <button type="submit" class="btn btn-sm btn-outline-secondary">Go</button>
         </form>
 
-        <form asp-controller="Invoice" asp-action="Accounting" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="days" value="@selectedDays" />
-            <button type="submit" class="btn btn-sm btn-primary" title="Get a shareable report link for @(selectedDays is null ? "all invoices" : $"the last {selectedDays} day(s)")">Accounting</button>
-        </form>
+            <form asp-controller="Invoice" asp-action="Accounting" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="days" value="@selectedDays" />
+                <button type="submit" class="btn btn-sm btn-primary" title="Get a shareable report link for @(selectedDays is null ? "all invoices" : $"the last {selectedDays} day(s)")">Accounting</button>
+            </form>       
     </div>
 
     <div class="table-responsive">
@@ -64,7 +64,7 @@
                     {
                         var subtotal = invoice.Products.Sum(p => p.TotalAmount);
                         var tax = invoice.Taxes.FirstOrDefault();
-                        var grandTotal = tax is null ? subtotal : subtotal + tax.TotalTax;
+                        var grandTotal = (tax is null ? subtotal : subtotal + tax.TotalTax) + invoice.AdditionalCost;
                         var statusColor = invoice.PaymentStatus switch
                         {
                             EBill.Models.PaymentStatus.Paid => "var(--brand-green)",

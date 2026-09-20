@@ -10,7 +10,17 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+var mvcBuilder = builder.Services.AddControllersWithViews();
+if (builder.Environment.IsDevelopment())
+{
+    // Without this, .cshtml edits (e.g. Views/Invoice/CreateFromCustomer.cshtml) are
+    // baked into the build output and only show up after Build > Rebuild - a plain
+    // restart (or IIS Express's normal "stop/start") keeps serving the old compiled
+    // view. This makes view changes take effect on a restart alone, in Development
+    // only (skipped in production so it doesn't add per-request view-change checks
+    // there).
+    mvcBuilder.AddRazorRuntimeCompilation();
+}
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

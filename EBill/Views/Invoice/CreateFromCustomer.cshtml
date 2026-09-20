@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Create Invoice";
     var customer = Model.Customer;
+    var pendingItems = Model.Items.Where(i => !i.IsInvoiced).ToList();
+    var hasInvoicedItems = Model.Items.Any(i => i.IsInvoiced);
 }
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
@@ -12,7 +14,10 @@
             <p class="text-muted mb-0">Items Stock Management dispatched to @customer.Name.</p>
         </div>
     </div>
-    <a asp-controller="Customers" asp-action="Index" class="btn btn-outline-secondary btn-sm mt-1">Back to Customers</a>
+    <div class="d-flex gap-2 mt-1">
+        <a asp-controller="Invoice" asp-action="Index" asp-route-customerId="@customer.Id" class="btn btn-outline-secondary btn-sm">Show Invoices</a>
+        <a asp-controller="Customers" asp-action="Index" class="btn btn-outline-secondary btn-sm">Back to Customers</a>
+    </div>
 </div>
 
 @if (TempData["DispatchError"] is string dispatchError)
@@ -46,14 +51,12 @@
     </div>
 </div>
 
-<div class="alert alert-info mt-3 mb-0">
-    Showing placeholder sample data - Stock Management doesn't have a dispatched-items API for Ebill to call yet.
-    Once that's connected, this list will show what was actually dispatched to @customer.Name on the selected date.
-</div>
-
 <div class="form-card mt-3">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <h5 class="mb-0">Dispatched Items</h5>
+        <div class="d-flex align-items-center flex-wrap gap-3">
+            <h5 class="mb-0">Dispatched Items</h5>
+            <a asp-controller="Invoice" asp-action="InvoicedItems" asp-route-customerId="@customer.Id" asp-route-date="@Model.SelectedDate.ToString("yyyy-MM-dd")">Invoice Items</a>
+        </div>
         <form asp-controller="Invoice" asp-action="CreateFromCustomer" method="get" class="d-flex align-items-center gap-2">
             <input type="hidden" name="customerId" value="@customer.Id" />
             <label for="dispatchDate" class="form-label mb-0 text-muted small text-uppercase">Date</label>
@@ -63,9 +66,18 @@
         </form>
     </div>
 
-    @if (!Model.Items.Any())
+    @if (!pendingItems.Any())
     {
-        <p class="text-muted text-center py-4 mb-0">No items dispatched to this customer on @Model.SelectedDate.ToString("dd MMM yyyy").</p>
+        <p class="text-muted text-center py-4 mb-0">
+            @if (hasInvoicedItems)
+            {
+                <text>All items dispatched to this customer on @Model.SelectedDate.ToString("dd MMM yyyy") have already been invoiced - see <a asp-controller="Invoice" asp-action="InvoicedItems" asp-route-customerId="@customer.Id" asp-route-date="@Model.SelectedDate.ToString("yyyy-MM-dd")">Invoice Items</a>.</text>
+            }
+            else
+            {
+                <text>No items dispatched to this customer on @Model.SelectedDate.ToString("dd MMM yyyy").</text>
+            }
+        </p>
     }
     else
     {
@@ -82,53 +94,51 @@
                             <th>Description</th>
                             <th>HSN/SAC</th>
                             <th class="text-end">Qty</th>
-                            <th>Qty Type</th>
-                            <th>Dispatched Date</th>
+                            <th class="d-none d-md-table-cell">Qty Type</th>
+                            <th class="d-none d-md-table-cell">Dispatched Date</th>
                             <th class="text-end">Cost/Qty (&#8377;)</th>
                             <th class="text-end">Total Cost (&#8377;)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @{ var index = 0; }
-                        @foreach (var item in Model.Items)
+                        @{ var rowNumber = 0; }
+                        @foreach (var item in pendingItems)
                         {
+                            var pendingIndex = rowNumber;
+                            rowNumber++;
                             <tr>
+                                <td>@rowNumber</td>
+                                <td>@item.Description</td>
                                 <td>
-                                    @(index + 1)
-                                    <input type="hidden" name="items[@index].DispatchProductId" value="@item.DispatchProductId" />
-                                </td>
-                                <td>
-                                    @item.Description
-                                    <input type="hidden" name="items[@index].Description" value="@item.Description" />
-                                </td>
-                                <td>
-                                    @item.HsnSac
-                                    <input type="hidden" name="items[@index].HsnSac" value="@item.HsnSac" />
+                                    <input type="hidden" name="items[@pendingIndex].DispatchProductId" value="@item.DispatchProductId" />
+                                    <input type="hidden" name="items[@pendingIndex].Description" value="@item.Description" />
+                                    <input type="hidden" name="items[@pendingIndex].Qty" value="@item.Qty.ToString("0.####")" />
+                                    <input type="hidden" name="items[@pendingIndex].QtyType" value="@item.QtyType" />
+                                    <input type="hidden" name="items[@pendingIndex].DispatchedDate" value="@item.DispatchedDate.ToString("yyyy-MM-dd")" />
+                                    <input type="text" maxlength="20"
+                                           class="form-control form-control-sm"
+                                           style="max-width: 100px;"
+                                           name="items[@pendingIndex].HsnSac" value="@item.HsnSac"
+                                           placeholder="HSN/SAC" />
                                 </td>
                                 <td class="text-end">
                                     @item.Qty.ToString("0.##")
-                                    <input type="hidden" name="items[@index].Qty" value="@item.Qty.ToString("0.####")" />
+                                    <div class="d-md-none text-muted small">@item.QtyType</div>
                                 </td>
-                                <td>
-                                    @item.QtyType
-                                    <input type="hidden" name="items[@index].QtyType" value="@item.QtyType" />
-                                </td>
-                                <td>
-                                    @item.DispatchedDate.ToString("dd MMM yyyy")
-                                    <input type="hidden" name="items[@index].DispatchedDate" value="@item.DispatchedDate.ToString("yyyy-MM-dd")" />
-                                </td>
+                                <td class="d-none d-md-table-cell">@item.QtyType</td>
+                                <td class="d-none d-md-table-cell">@item.DispatchedDate.ToString("dd MMM yyyy")</td>
                                 <td class="text-end">
                                     <input type="number" step="0.01" min="0"
-                                           class="form-control form-control-sm text-end cost-input"
+                                           class="form-control form-control-sm text-end cost-input no-spinner"
                                            style="max-width: 110px; display: inline-block;"
-                                           name="items[@index].Rate" value="@item.Rate.ToString("0.00")"
-                                           data-qty="@item.Qty.ToString("0.####")" data-row="@index" />
+                                           name="items[@pendingIndex].Rate" value="@(item.Rate > 0 ? item.Rate.ToString("0.00") : "")"
+                                           placeholder="0.00"
+                                           data-qty="@item.Qty.ToString("0.####")" data-row="@pendingIndex" />
                                 </td>
                                 <td class="text-end">
-                                    <span class="total-cost-value fw-semibold" data-row="@index">&#8377; @item.Amount.ToString("0.00")</span>
+                                    <span class="total-cost-value fw-semibold" data-row="@pendingIndex">&#8377; @item.Amount.ToString("0.00")</span>
                                 </td>
                             </tr>
-                            index++;
                         }
                     </tbody>
                 </table>
@@ -185,6 +195,17 @@
                     }
                 });
             });
+
+            // A Cost/Qty left blank (it shows the 0.00 placeholder) is posted as 0
+            // rather than as an empty string the decimal binder would reject.
+            const dispatchForm = document.querySelector('#dispatchItemsTable') && document.querySelector('#dispatchItemsTable').closest('form');
+            if (dispatchForm) {
+                dispatchForm.addEventListener('submit', function () {
+                    dispatchForm.querySelectorAll('.cost-input').forEach(function (input) {
+                        if (input.value === '') input.value = '0';
+                    });
+                });
+            }
 
             const calculateBtn = document.getElementById('calculateAmountBtn');
             if (calculateBtn) {

@@ -1,4 +1,5 @@
 @model EBill.Models.Quotation
+@using System.Globalization
 @{
     ViewData["Title"] = "Products";
     var customer = Model.Customer!;
@@ -41,6 +42,8 @@
         </button>
     </div>
 
+    <div id="lineItemError" class="text-danger small mb-2 d-none"></div>
+
     <div class="table-responsive">
         <table class="table align-middle" id="itemsTable">
             <thead>
@@ -64,10 +67,14 @@
                         <td class="row-index">@index</td>
                         <td>@product.Description</td>
                         <td>@product.HsnSac</td>
-                        <td class="text-end">@product.Qty</td>
+                        <td class="text-end qty-cell">@product.Qty</td>
                         <td>@product.QtyType</td>
-                        <td class="text-end">@product.Rate.ToString("0.00")</td>
-                        <td class="text-end">@product.Discount.ToString("0.00")</td>
+                        <td class="text-end">
+                            <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end no-spinner line-edit-input" style="width: 100px; display: inline-block;" data-field="rate" data-saved="@product.Rate.ToString("0.00", CultureInfo.InvariantCulture)" value="@(product.Rate > 0 ? product.Rate.ToString("0.00", CultureInfo.InvariantCulture) : "")" placeholder="0.00" aria-label="Rate" />
+                        </td>
+                        <td class="text-end">
+                            <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end no-spinner line-edit-input" style="width: 100px; display: inline-block;" data-field="discount" data-saved="@product.Discount.ToString("0.00", CultureInfo.InvariantCulture)" value="@(product.Discount > 0 ? product.Discount.ToString("0.00", CultureInfo.InvariantCulture) : "")" placeholder="0.00" aria-label="Discount" />
+                        </td>
                         <td class="text-end amount-cell">@product.TotalAmount.ToString("0.00")</td>
                         <td class="text-end">
                             <button type="button" class="btn-remove-item" data-id="@product.Id" title="Remove">&#10005;</button>
@@ -214,10 +221,10 @@
                     '<td class="row-index"></td>' +
                     '<td>' + product.description + '</td>' +
                     '<td>' + product.hsnSac + '</td>' +
-                    '<td class="text-end">' + product.qty + '</td>' +
+                    '<td class="text-end qty-cell">' + product.qty + '</td>' +
                     '<td>' + product.qtyType + '</td>' +
-                    '<td class="text-end">' + formatMoney(product.rate) + '</td>' +
-                    '<td class="text-end">' + formatMoney(product.discount) + '</td>' +
+                    '<td class="text-end"><input type="number" step="0.01" min="0" class="form-control form-control-sm text-end no-spinner line-edit-input" style="width: 100px; display: inline-block;" data-field="rate" data-saved="' + Number(product.rate).toFixed(2) + '" value="' + (product.rate > 0 ? Number(product.rate).toFixed(2) : '') + '" placeholder="0.00" aria-label="Rate" /></td>' +
+                    '<td class="text-end"><input type="number" step="0.01" min="0" class="form-control form-control-sm text-end no-spinner line-edit-input" style="width: 100px; display: inline-block;" data-field="discount" data-saved="' + Number(product.discount).toFixed(2) + '" value="' + (product.discount > 0 ? Number(product.discount).toFixed(2) : '') + '" placeholder="0.00" aria-label="Discount" /></td>' +
                     '<td class="text-end amount-cell">' + formatMoney(product.totalAmount) + '</td>' +
                     '<td class="text-end"><button type="button" class="btn-remove-item" data-id="' + product.id + '" title="Remove">&#10005;</button></td>';
                 tableBody.appendChild(row);
@@ -263,6 +270,112 @@
                 addForm.reset();
                 clearFieldErrors();
                 modalAmountPreview.textContent = '₹ 0.00';
+            });
+
+            // ---- Rate / Discount edited directly in the line item ----
+            // Typing previews the row's Amount straight away; the change is saved
+            // (ProductController.UpdateLineItem) when the field loses focus or Enter is
+            // pressed, and reverted with a message if the server rejects it.
+            const lineItemError = document.getElementById('lineItemError');
+
+            function showLineItemError(message) {
+                lineItemError.textContent = message;
+                lineItemError.classList.remove('d-none');
+            }
+
+            function rowPreviewAmount(row, rateText, discountText) {
+                const qty = parseFloat(row.querySelector('.qty-cell').textContent) || 0;
+                const rate = parseFloat(rateText) || 0;
+                const discount = parseFloat(discountText) || 0;
+                return (qty * rate) - discount;
+            }
+
+            function setLineInput(input, value) {
+                const number = Number(value) || 0;
+                input.dataset.saved = number.toFixed(2);
+                input.value = number > 0 ? number.toFixed(2) : '';
+            }
+
+            function revertLineRow(row) {
+                const rateInput = row.querySelector('[data-field="rate"]');
+                const discountInput = row.querySelector('[data-field="discount"]');
+                setLineInput(rateInput, rateInput.dataset.saved);
+                setLineInput(discountInput, discountInput.dataset.saved);
+                row.querySelector('.amount-cell').textContent = formatMoney(rowPreviewAmount(row, rateInput.dataset.saved, discountInput.dataset.saved));
+            }
+
+            tableBody.addEventListener('input', function (e) {
+                const input = e.target.closest('.line-edit-input');
+                if (!input) return;
+
+                const row = input.closest('tr');
+                const amount = rowPreviewAmount(
+                    row,
+                    row.querySelector('[data-field="rate"]').value,
+                    row.querySelector('[data-field="discount"]').value);
+                row.querySelector('.amount-cell').textContent = formatMoney(Math.max(0, amount));
+            });
+
+            tableBody.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && e.target.closest('.line-edit-input')) {
+                    e.preventDefault();
+                    e.target.blur();
+                }
+            });
+
+            tableBody.addEventListener('change', async function (e) {
+                const input = e.target.closest('.line-edit-input');
+                if (!input) return;
+
+                const row = input.closest('tr');
+                const rateInput = row.querySelector('[data-field="rate"]');
+                const discountInput = row.querySelector('[data-field="discount"]');
+                lineItemError.classList.add('d-none');
+
+                const rate = rateInput.value === '' ? 0 : parseFloat(rateInput.value);
+                const discount = discountInput.value === '' ? 0 : parseFloat(discountInput.value);
+                if (isNaN(rate) || rate < 0 || isNaN(discount) || discount < 0) {
+                    showLineItemError('Rate and Discount cannot be negative.');
+                    revertLineRow(row);
+                    return;
+                }
+
+                const token = document.querySelector('#addItemForm input[name="__RequestVerificationToken"]').value;
+                const formData = new FormData();
+                formData.append('id', row.dataset.productId);
+                formData.append('quotationId', quotationId);
+                formData.append('rate', rate);
+                formData.append('discount', discount);
+                formData.append('__RequestVerificationToken', token);
+
+                rateInput.disabled = true;
+                discountInput.disabled = true;
+                let response = null, data = null;
+                try {
+                    response = await fetch('/Product/UpdateLineItem', { method: 'POST', body: formData });
+                    data = await response.json();
+                } catch (err) {
+                    response = null;
+                }
+                rateInput.disabled = false;
+                discountInput.disabled = false;
+
+                if (response && response.ok) {
+                    setLineInput(rateInput, data.rate);
+                    setLineInput(discountInput, data.discount);
+                    row.querySelector('.amount-cell').textContent = formatMoney(data.totalAmount);
+                    subtotalValue.textContent = '₹ ' + formatMoney(data.subtotal);
+
+                    // A line item shared with a quotation/invoice was copied for this
+                    // document - point the row (and its remove/tax controls) at the copy.
+                    if (String(data.productId) !== String(row.dataset.productId)) {
+                        row.dataset.productId = data.productId;
+                        row.querySelectorAll('[data-id]').forEach(function (el) { el.dataset.id = data.productId; });
+                    }
+                } else {
+                    showLineItemError((data && data.message) || 'Could not update this line item. Please try again.');
+                    revertLineRow(row);
+                }
             });
 
             tableBody.addEventListener('click', async function (e) {

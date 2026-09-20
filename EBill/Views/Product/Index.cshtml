@@ -1,4 +1,5 @@
 @model EBill.Models.Invoice
+@using System.Globalization
 @{
     ViewData["Title"] = "Products";
     var customer = Model.Customer!;
@@ -41,6 +42,8 @@
         </button>
     </div>
 
+    <div id="lineItemError" class="text-danger small mb-2 d-none"></div>
+
     <div class="table-responsive">
         <table class="table align-middle" id="itemsTable">
             <thead>
@@ -65,11 +68,33 @@
                         <td class="row-index">@index</td>
                         <td>@product.Description</td>
                         <td>@product.HsnSac</td>
-                        <td class="text-end">@product.Qty</td>
+                        <td class="text-end qty-cell">@product.Qty</td>
                         <td>@product.QtyType</td>
-                        <td class="text-end">@product.Rate.ToString("0.00")</td>
-                        <td class="text-end">@product.Discount.ToString("0.00")</td>
-                        <td class="text-end">@((int)product.TaxRate)%</td>
+                        <td class="text-end">
+                            <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end no-spinner line-edit-input" style="width: 100px; display: inline-block;" data-field="rate" data-saved="@product.Rate.ToString("0.00", CultureInfo.InvariantCulture)" value="@(product.Rate > 0 ? product.Rate.ToString("0.00", CultureInfo.InvariantCulture) : "")" placeholder="0.00" aria-label="Rate" />
+                        </td>
+                        <td class="text-end">
+                            <input type="number" step="0.01" min="0" class="form-control form-control-sm text-end no-spinner line-edit-input" style="width: 100px; display: inline-block;" data-field="discount" data-saved="@product.Discount.ToString("0.00", CultureInfo.InvariantCulture)" value="@(product.Discount > 0 ? product.Discount.ToString("0.00", CultureInfo.InvariantCulture) : "")" placeholder="0.00" aria-label="Discount" />
+                        </td>
+                        <td class="text-end">
+                            @{
+                                var standardRates = new[] { 0, 5, 18, 28 };
+                                var currentRate = (int)product.TaxRate;
+                                // A Total Tax % override (ProductController.CalculateTax) can set this
+                                // to a rate outside the usual 0/5/18/28 buttons - include it here too
+                                // so the dropdown shows what's actually saved instead of falling back
+                                // to a blank/incorrect selection.
+                                var rateOptions = standardRates.Contains(currentRate)
+                                    ? standardRates
+                                    : standardRates.Append(currentRate).OrderBy(r => r).ToArray();
+                            }
+                            <select class="form-select form-select-sm tax-rate-select" style="max-width: 90px; display: inline-block;" data-id="@product.Id">
+                                @foreach (var rate in rateOptions)
+                                {
+                                    <option value="@rate" selected="@(rate == currentRate)">@rate%</option>
+                                }
+                            </select>
+                        </td>
                         <td class="text-end amount-cell">@product.TotalAmount.ToString("0.00")</td>
                         <td class="text-end">
                             <button type="button" class="btn-remove-item" data-id="@product.Id" title="Remove">&#10005;</button>
@@ -90,12 +115,29 @@
             <span class="fs-5 fw-bold" id="subtotalValue">&#8377; @Model.Products.Sum(p => p.TotalAmount).ToString("0.00")</span>
         </div>
     </div>
+
+    <div class="border-top mt-3 pt-3" id="additionalCostSection">
+        <h6 class="mb-2">Additional Cost</h6>
+        <div id="additionalCostError" class="text-danger d-none mb-2"></div>
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-8">
+                <input type="text" id="additionalCostLabelInput" class="form-control" maxlength="100" placeholder="Description (e.g. Freight, Packing)" aria-label="Additional cost description" value="@Model.AdditionalCostLabel" />
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text">&#8377;</span>
+                    <input type="number" id="additionalCostInput" class="form-control text-end no-spinner" step="0.01" min="0" placeholder="0.00" aria-label="Additional cost amount" value="@(Model.AdditionalCost > 0 ? Model.AdditionalCost.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) : "")" />
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @{
     var existingTax = Model.Taxes.FirstOrDefault();
     var existingSubtotal = Model.Products.Sum(p => p.TotalAmount);
-    var existingGrandTotal = existingTax is null ? 0 : existingSubtotal + existingTax.TotalTax;
+    var existingGrandTotal = existingTax is null ? 0 : existingSubtotal + existingTax.TotalTax + Model.AdditionalCost;
+    var additionalCostLabel = string.IsNullOrWhiteSpace(Model.AdditionalCostLabel) ? "Additional Cost" : Model.AdditionalCostLabel;
     // Line items may have been added/removed since tax was last calculated; only
     // show the stored breakdown if it still matches the invoice's saved total.
     var taxIsStale = existingTax is not null && Model.TotalAmount != existingGrandTotal;
@@ -116,6 +158,10 @@
                 <td>SGST</td>
                 <td class="text-end" id="taxSgst">&#8377; @((existingTax?.Sgst ?? 0).ToString("0.00"))</td>
             </tr>
+            <tr id="taxAdditionalCostRow" class="@(Model.AdditionalCost > 0 ? "" : "d-none")">
+                <td id="taxAdditionalCostLabel">@additionalCostLabel</td>
+                <td class="text-end" id="taxAdditionalCost">&#8377; @Model.AdditionalCost.ToString("0.00")</td>
+            </tr>
             <tr class="fw-bold border-top">
                 <td>Grand Total</td>
                 <td class="text-end" id="taxGrandTotal">&#8377; @existingGrandTotal.ToString("0.00")</td>
@@ -126,10 +172,15 @@
 
 <div class="mt-4 product-actions">
     <div id="taxError" class="text-danger d-none mb-2"></div>
-    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-sm-end">
+    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-sm-end align-items-sm-end">
+        <div style="max-width: 180px;">
+            <label for="totalTaxInput" class="form-label mb-1 text-muted small text-uppercase">Total Tax (%)</label>
+            <input type="number" id="totalTaxInput" class="form-control form-control-sm no-spinner" step="0.01" min="0" max="100" placeholder="Auto from line items" />
+        </div>
         <button type="button" id="calculateTaxBtn" class="btn btn-primary">Calculate Tax</button>
-        <a asp-controller="Invoice" asp-action="View" asp-route-id="@Model.Id" class="btn btn-outline-secondary">View Invoice</a>
+        <a id="viewInvoiceBtn" asp-controller="Invoice" asp-action="View" asp-route-id="@Model.Id" class="btn btn-outline-secondary">View Invoice</a>
     </div>
+    <div class="form-text text-sm-end">Leave Total Tax blank to calculate it from each line item's own Tax %. Enter a percentage to apply that same rate to every line item's Tax % instead.</div>
 </div>
 
 <!-- Add Line Item Modal -->
@@ -228,10 +279,72 @@
             const taxError = document.getElementById('taxError');
             const taxSummary = document.getElementById('taxSummary');
             const taxRateButtons = document.querySelectorAll('.tax-rate-btn');
+            const totalTaxInput = document.getElementById('totalTaxInput');
             let selectedTaxRate = null;
 
             function formatMoney(n) {
                 return Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            // The line items changed (added/removed/tax % edited) since the tax
+            // summary below was last calculated, or since Total Tax was last typed -
+            // both are stale now, so hide/clear them rather than leave a total on
+            // screen that no longer matches what's in the table.
+            function invalidateTaxSummary() {
+                taxSummary.classList.add('d-none');
+                restoreTaxSelects();
+                totalTaxInput.value = '';
+            }
+
+            // Typing a Total Tax (%) immediately shows that rate on every line item's
+            // Tax column. It is only a preview until Calculate Tax is pressed, which is
+            // what saves it (ProductController.CalculateTax); each select remembers the
+            // rate it had (data-original-value) so clearing Total Tax puts it back.
+            // Whole percentages only, same rounding the server uses.
+            function applyTotalTaxToRows(percentText) {
+                const percent = parseFloat(percentText);
+                if (isNaN(percent) || percent <= 0) {
+                    restoreTaxSelects();
+                    return;
+                }
+
+                const rate = String(Math.round(percent));
+                document.querySelectorAll('.tax-rate-select').forEach(function (select) {
+                    if (select.dataset.originalValue === undefined) {
+                        select.dataset.originalValue = select.value;
+                    }
+                    let option = select.querySelector('option[value="' + rate + '"]');
+                    if (!option) {
+                        option = document.createElement('option');
+                        option.value = rate;
+                        option.textContent = rate + '%';
+                        select.appendChild(option);
+                    }
+                    select.value = rate;
+                });
+            }
+
+            function restoreTaxSelects() {
+                document.querySelectorAll('.tax-rate-select').forEach(function (select) {
+                    if (select.dataset.originalValue !== undefined) {
+                        select.value = select.dataset.originalValue;
+                        delete select.dataset.originalValue;
+                    }
+                });
+            }
+
+            // Keeps the "Additional Cost" row of the Tax Summary in sync with what is
+            // saved (hidden when there's no additional cost).
+            function updateAdditionalCostRow(amount, label) {
+                document.getElementById('taxAdditionalCostRow').classList.toggle('d-none', !(Number(amount) > 0));
+                document.getElementById('taxAdditionalCostLabel').textContent = label && label.trim() !== '' ? label : 'Additional Cost';
+                document.getElementById('taxAdditionalCost').textContent = '₹ ' + formatMoney(amount || 0);
+            }
+
+            function taxSelectHtml(id, currentRate) {
+                return [0, 5, 18, 28].map(function (rate) {
+                    return '<option value="' + rate + '"' + (rate === currentRate ? ' selected' : '') + '>' + rate + '%</option>';
+                }).join('');
             }
 
             taxRateButtons.forEach(btn => {
@@ -282,11 +395,11 @@
                     '<td class="row-index"></td>' +
                     '<td>' + product.description + '</td>' +
                     '<td>' + product.hsnSac + '</td>' +
-                    '<td class="text-end">' + product.qty + '</td>' +
+                    '<td class="text-end qty-cell">' + product.qty + '</td>' +
                     '<td>' + product.qtyType + '</td>' +
-                    '<td class="text-end">' + formatMoney(product.rate) + '</td>' +
-                    '<td class="text-end">' + formatMoney(product.discount) + '</td>' +
-                    '<td class="text-end">' + product.taxRate + '%</td>' +
+                    '<td class="text-end"><input type="number" step="0.01" min="0" class="form-control form-control-sm text-end no-spinner line-edit-input" style="width: 100px; display: inline-block;" data-field="rate" data-saved="' + Number(product.rate).toFixed(2) + '" value="' + (product.rate > 0 ? Number(product.rate).toFixed(2) : '') + '" placeholder="0.00" aria-label="Rate" /></td>' +
+                    '<td class="text-end"><input type="number" step="0.01" min="0" class="form-control form-control-sm text-end no-spinner line-edit-input" style="width: 100px; display: inline-block;" data-field="discount" data-saved="' + Number(product.discount).toFixed(2) + '" value="' + (product.discount > 0 ? Number(product.discount).toFixed(2) : '') + '" placeholder="0.00" aria-label="Discount" /></td>' +
+                    '<td class="text-end"><select class="form-select form-select-sm tax-rate-select" style="max-width: 90px; display: inline-block;" data-id="' + product.id + '">' + taxSelectHtml(product.id, product.taxRate) + '</select></td>' +
                     '<td class="text-end amount-cell">' + formatMoney(product.totalAmount) + '</td>' +
                     '<td class="text-end"><button type="button" class="btn-remove-item" data-id="' + product.id + '" title="Remove">&#10005;</button></td>';
                 tableBody.appendChild(row);
@@ -315,7 +428,7 @@
                     modalAmountPreview.textContent = '₹ 0.00';
                     resetTaxRateButtons();
                     modal.hide();
-                    taxSummary.classList.add('d-none');
+                    invalidateTaxSummary();
                 } else if (response.status === 400) {
                     const data = await response.json();
                     if (data.errors) {
@@ -340,6 +453,114 @@
                 resetTaxRateButtons();
             });
 
+            // ---- Rate / Discount edited directly in the line item ----
+            // Typing previews the row's Amount straight away; the change is saved
+            // (ProductController.UpdateLineItem) when the field loses focus or Enter is
+            // pressed, and reverted with a message if the server rejects it.
+            const lineItemError = document.getElementById('lineItemError');
+
+            function showLineItemError(message) {
+                lineItemError.textContent = message;
+                lineItemError.classList.remove('d-none');
+            }
+
+            function rowPreviewAmount(row, rateText, discountText) {
+                const qty = parseFloat(row.querySelector('.qty-cell').textContent) || 0;
+                const rate = parseFloat(rateText) || 0;
+                const discount = parseFloat(discountText) || 0;
+                return (qty * rate) - discount;
+            }
+
+            function setLineInput(input, value) {
+                const number = Number(value) || 0;
+                input.dataset.saved = number.toFixed(2);
+                input.value = number > 0 ? number.toFixed(2) : '';
+            }
+
+            function revertLineRow(row) {
+                const rateInput = row.querySelector('[data-field="rate"]');
+                const discountInput = row.querySelector('[data-field="discount"]');
+                setLineInput(rateInput, rateInput.dataset.saved);
+                setLineInput(discountInput, discountInput.dataset.saved);
+                row.querySelector('.amount-cell').textContent = formatMoney(rowPreviewAmount(row, rateInput.dataset.saved, discountInput.dataset.saved));
+            }
+
+            tableBody.addEventListener('input', function (e) {
+                const input = e.target.closest('.line-edit-input');
+                if (!input) return;
+
+                const row = input.closest('tr');
+                const amount = rowPreviewAmount(
+                    row,
+                    row.querySelector('[data-field="rate"]').value,
+                    row.querySelector('[data-field="discount"]').value);
+                row.querySelector('.amount-cell').textContent = formatMoney(Math.max(0, amount));
+                if (typeof taxSummary !== 'undefined') taxSummary.classList.add('d-none');
+            });
+
+            tableBody.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && e.target.closest('.line-edit-input')) {
+                    e.preventDefault();
+                    e.target.blur();
+                }
+            });
+
+            tableBody.addEventListener('change', async function (e) {
+                const input = e.target.closest('.line-edit-input');
+                if (!input) return;
+
+                const row = input.closest('tr');
+                const rateInput = row.querySelector('[data-field="rate"]');
+                const discountInput = row.querySelector('[data-field="discount"]');
+                lineItemError.classList.add('d-none');
+
+                const rate = rateInput.value === '' ? 0 : parseFloat(rateInput.value);
+                const discount = discountInput.value === '' ? 0 : parseFloat(discountInput.value);
+                if (isNaN(rate) || rate < 0 || isNaN(discount) || discount < 0) {
+                    showLineItemError('Rate and Discount cannot be negative.');
+                    revertLineRow(row);
+                    return;
+                }
+
+                const token = document.querySelector('#addItemForm input[name="__RequestVerificationToken"]').value;
+                const formData = new FormData();
+                formData.append('id', row.dataset.productId);
+                formData.append('invoiceId', invoiceId);
+                formData.append('rate', rate);
+                formData.append('discount', discount);
+                formData.append('__RequestVerificationToken', token);
+
+                rateInput.disabled = true;
+                discountInput.disabled = true;
+                let response = null, data = null;
+                try {
+                    response = await fetch('/Product/UpdateLineItem', { method: 'POST', body: formData });
+                    data = await response.json();
+                } catch (err) {
+                    response = null;
+                }
+                rateInput.disabled = false;
+                discountInput.disabled = false;
+
+                if (response && response.ok) {
+                    setLineInput(rateInput, data.rate);
+                    setLineInput(discountInput, data.discount);
+                    row.querySelector('.amount-cell').textContent = formatMoney(data.totalAmount);
+                    subtotalValue.textContent = '₹ ' + formatMoney(data.subtotal);
+
+                    // A line item shared with a quotation/invoice was copied for this
+                    // document - point the row (and its remove/tax controls) at the copy.
+                    if (String(data.productId) !== String(row.dataset.productId)) {
+                        row.dataset.productId = data.productId;
+                        row.querySelectorAll('[data-id]').forEach(function (el) { el.dataset.id = data.productId; });
+                    }
+                        invalidateTaxSummary();
+                } else {
+                    showLineItemError((data && data.message) || 'Could not update this line item. Please try again.');
+                    revertLineRow(row);
+                }
+            });
+
             tableBody.addEventListener('click', async function (e) {
                 const btn = e.target.closest('.btn-remove-item');
                 if (!btn) return;
@@ -357,15 +578,127 @@
                     btn.closest('tr').remove();
                     renumberRows();
                     subtotalValue.textContent = '₹ ' + formatMoney(data.subtotal);
+                    invalidateTaxSummary();
+                }
+            });
+
+            tableBody.addEventListener('change', async function (e) {
+                const select = e.target.closest('.tax-rate-select');
+                if (!select) return;
+
+                const id = select.dataset.id;
+                const previousValue = select.dataset.originalValue || select.dataset.savedValue || select.value;
+                const token = document.querySelector('#addItemForm input[name="__RequestVerificationToken"]').value;
+                const formData = new FormData();
+                formData.append('id', id);
+                formData.append('invoiceId', invoiceId);
+                formData.append('taxRate', select.value);
+                formData.append('__RequestVerificationToken', token);
+
+                select.disabled = true;
+                const response = await fetch('/Product/UpdateTaxRate', { method: 'POST', body: formData });
+                select.disabled = false;
+
+                if (response.ok) {
+                    select.dataset.savedValue = select.value;
+                    delete select.dataset.originalValue;
+                    // The tax rate driving this row's share of tax just changed, so
+                    // any Tax Summary/Total Tax already on screen no longer applies.
+                    invalidateTaxSummary();
+                } else {
+                    select.value = previousValue;
+                    alert('Could not update the tax rate for this item. Please try again.');
+                }
+            });
+
+            totalTaxInput.addEventListener('input', function () {
+                // Whatever Tax Summary is on screen was for the old rates.
+                taxSummary.classList.add('d-none');
+                applyTotalTaxToRows(totalTaxInput.value);
+            });
+
+            const additionalCostInput = document.getElementById('additionalCostInput');
+            const additionalCostLabelInput = document.getElementById('additionalCostLabelInput');
+            const additionalCostError = document.getElementById('additionalCostError');
+
+            // Any edit to the additional cost means the Tax Summary on screen (which
+            // includes the previously saved amount) is out of date.
+            [additionalCostInput, additionalCostLabelInput].forEach(function (el) {
+                el.addEventListener('input', function () {
                     taxSummary.classList.add('d-none');
+                });
+            });
+
+            // There is no Save button: the additional cost is saved when the user
+            // clicks "View Invoice" or "Calculate Tax". Returns true if it was saved.
+            async function saveAdditionalCost() {
+                additionalCostError.classList.add('d-none');
+
+                const amount = parseFloat(additionalCostInput.value);
+                if (additionalCostInput.value !== '' && (isNaN(amount) || amount < 0)) {
+                    additionalCostError.textContent = 'Additional cost cannot be negative.';
+                    additionalCostError.classList.remove('d-none');
+                    additionalCostError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return false;
+                }
+
+                const token = document.querySelector('#addItemForm input[name="__RequestVerificationToken"]').value;
+                const formData = new FormData();
+                formData.append('__RequestVerificationToken', token);
+                formData.append('additionalCost', additionalCostInput.value === '' ? '0' : additionalCostInput.value);
+                formData.append('label', additionalCostLabelInput.value);
+
+                let response = null, data = null;
+                try {
+                    response = await fetch('/Product/SetAdditionalCost?invoiceId=' + invoiceId, { method: 'POST', body: formData });
+                    data = await response.json();
+                } catch (err) {
+                    response = null;
+                }
+
+                if (response && response.ok) {
+                    additionalCostInput.value = data.additionalCost > 0 ? Number(data.additionalCost).toFixed(2) : '';
+                    additionalCostLabelInput.value = data.additionalCostLabel || '';
+                    updateAdditionalCostRow(data.additionalCost, data.additionalCostLabel);
+                    return true;
+                }
+
+                additionalCostError.textContent = (data && data.message) || 'Could not save the additional cost. Please try again.';
+                additionalCostError.classList.remove('d-none');
+                additionalCostError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+
+            const viewInvoiceBtn = document.getElementById('viewInvoiceBtn');
+            let navigatingToInvoice = false;
+            viewInvoiceBtn.addEventListener('click', async function (e) {
+                e.preventDefault();
+                if (navigatingToInvoice) return;
+                navigatingToInvoice = true;
+
+                if (await saveAdditionalCost()) {
+                    window.location.href = viewInvoiceBtn.href;
+                } else {
+                    navigatingToInvoice = false;
                 }
             });
 
             document.getElementById('calculateTaxBtn').addEventListener('click', async function () {
                 taxError.classList.add('d-none');
+
+                // Tax Summary's Grand Total includes the additional cost, so make sure
+                // what's typed in is saved before calculating.
+                if (!(await saveAdditionalCost())) return;
+
                 const token = document.querySelector('#addItemForm input[name="__RequestVerificationToken"]').value;
                 const formData = new FormData();
                 formData.append('__RequestVerificationToken', token);
+                if (totalTaxInput.value !== '') {
+                    // A manually entered Total Tax % overrides each line item's own
+                    // Tax % and is applied to the whole Subtotal instead - see
+                    // ProductController.CalculateTax.
+                    formData.append('totalTaxPercent', totalTaxInput.value);
+                }
 
                 const response = await fetch('/Product/CalculateTax?invoiceId=' + invoiceId, { method: 'POST', body: formData });
                 const data = await response.json();
@@ -374,9 +707,30 @@
                     document.getElementById('taxSubtotal').textContent = '₹ ' + formatMoney(data.subtotal);
                     document.getElementById('taxCgst').textContent = '₹ ' + formatMoney(data.cgst);
                     document.getElementById('taxSgst').textContent = '₹ ' + formatMoney(data.sgst);
+                    updateAdditionalCostRow(data.additionalCost, data.additionalCostLabel);
                     document.getElementById('taxGrandTotal').textContent = '₹ ' + formatMoney(data.grandTotal);
                     taxSummary.classList.remove('d-none');
                     taxSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    if (data.appliedTaxRatePercent !== null && data.appliedTaxRatePercent !== undefined) {
+                        // A Total Tax % override was just saved onto every line item
+                        // (ProductController.CalculateTax) - reflect that in each row's
+                        // Tax column here too, instead of leaving the old value (or 0%)
+                        // showing until the page is reloaded.
+                        document.querySelectorAll('.tax-rate-select').forEach(function (select) {
+                            const rate = String(data.appliedTaxRatePercent);
+                            let option = select.querySelector('option[value="' + rate + '"]');
+                            if (!option) {
+                                option = document.createElement('option');
+                                option.value = rate;
+                                option.textContent = rate + '%';
+                                select.appendChild(option);
+                            }
+                            select.value = rate;
+                            select.dataset.savedValue = rate;
+                            delete select.dataset.originalValue;
+                        });
+                    }
                 } else {
                     taxError.textContent = data.message || 'Could not calculate tax.';
                     taxError.classList.remove('d-none');

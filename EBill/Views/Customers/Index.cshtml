@@ -49,6 +49,7 @@
                             <td>@customer.Address</td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
+                                    <a asp-controller="Invoice" asp-action="Index" asp-route-customerId="@customer.Id" class="btn btn-sm btn-outline-secondary">Invoices</a>
                                     <a asp-controller="Customers" asp-action="Edit" asp-route-id="@customer.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
                                     <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCustomerModal" data-customer-id="@customer.Id" data-customer-name="@customer.Name" title="Delete customer">Delete</button>
                                     @if ((bool)(ViewData["InventoryConnected"] ?? false))

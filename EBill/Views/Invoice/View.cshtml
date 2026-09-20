@@ -4,7 +4,7 @@
     var customer = Model.Customer!;
     var tax = Model.Taxes.FirstOrDefault();
     var subtotal = Model.Products.Sum(p => p.TotalAmount);
-    var grandTotal = tax is null ? subtotal : subtotal + tax.TotalTax;
+    var grandTotal = (tax is null ? subtotal : subtotal + tax.TotalTax) + Model.AdditionalCost;
     var amountPaidDisplay = Model.AmountPaid > 0 ? Model.AmountPaid : grandTotal;
     bool isReadOnly = ViewData["ReadOnly"] as bool? ?? false;
     Guid? accountingLinkId = ViewData["AccountingLinkId"] as Guid?;
@@ -12,6 +12,22 @@
     int? nextInvoiceId = ViewData["NextInvoiceId"] as int?;
     bool hasTax = tax is not null && tax.TotalTax > 0;
     string invoiceHeading = hasTax ? "Tax Invoice" : "Invoice";
+    // Same colours as the status badge on the Invoices list; "Pending" reads as
+    // "Not Paid" here since this page is about whether this bill has been settled.
+    var paymentStatusText = Model.PaymentStatus switch
+    {
+        EBill.Models.PaymentStatus.Paid => "Paid",
+        EBill.Models.PaymentStatus.PartiallyPaid => "Partially Paid",
+        EBill.Models.PaymentStatus.Overdue => "Overdue",
+        _ => "Not Paid",
+    };
+    var paymentStatusColor = Model.PaymentStatus switch
+    {
+        EBill.Models.PaymentStatus.Paid => "var(--brand-green)",
+        EBill.Models.PaymentStatus.PartiallyPaid => "var(--brand-orange)",
+        EBill.Models.PaymentStatus.Overdue => "#c0392b",
+        _ => "#8a8a8a",
+    };
     ViewData["Title"] = invoiceHeading;
 }
 
@@ -68,6 +84,7 @@
         <div class="text-end invoice-meta-wrap">
             <h5 class="mb-1">Invoice @Model.DisplayBillNumber</h5>
             <p class="mb-0 text-muted">Invoice Date: @Model.Date.ToString("dd MMM yyyy")</p>
+            <span id="paymentStatusBadge" class="badge mt-2" style="background-color: @paymentStatusColor; font-size: 0.85rem; -webkit-print-color-adjust: exact; print-color-adjust: exact;">@paymentStatusText</span>
         </div>
     </div>
 
@@ -164,6 +181,13 @@
                             <td class="text-end">&#8377; @MoneyFormat.Format(tax.Sgst)</td>
                         </tr>
                     }
+                    @if (Model.AdditionalCost > 0)
+                    {
+                        <tr>
+                            <td>@(string.IsNullOrWhiteSpace(Model.AdditionalCostLabel) ? "Additional Cost" : Model.AdditionalCostLabel)</td>
+                            <td class="text-end">&#8377; @MoneyFormat.Format(Model.AdditionalCost)</td>
+                        </tr>
+                    }
                     <tr class="fw-bold border-top">
                         <td>Grand Total</td>
                         <td class="text-end">&#8377; @MoneyFormat.Format(grandTotal)</td>
@@ -249,7 +273,13 @@
                     formData.append('amountPaid', document.getElementById('amountPaidInput').value);
                     formData.append('__RequestVerificationToken', token);
 
-                    await fetch('/Invoice/UpdatePayment', { method: 'POST', body: formData });
+                    const response = await fetch('/Invoice/UpdatePayment', { method: 'POST', body: formData });
+                    if (response.ok) {
+                        // UpdatePayment marks the invoice Paid - reflect that without a reload.
+                        const badge = document.getElementById('paymentStatusBadge');
+                        badge.textContent = 'Paid';
+                        badge.style.backgroundColor = 'var(--brand-green)';
+                    }
                 });
             }
 
