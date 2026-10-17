@@ -762,3 +762,15 @@ input.no-spinner[type=number] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* Invoice footprint: editor + printed footer */
+.footprint-toolbar .fp-btn { min-width: 36px; }
+#footprintEditor:focus { outline: 0; border-color: #86b7fe; box-shadow: 0 0 0 .25rem rgba(13,110,253,.25); }
+#footprintEditor p { margin-bottom: .5rem; }
+.invoice-footprint { max-width: 45%; font-size: .75rem; line-height: 1.4; }
+.invoice-footprint p { margin-bottom: .25rem; }
+.invoice-footprint ul, .invoice-footprint ol { padding-left: 1.1rem; margin-bottom: .25rem; }
+#footprintEditor:empty::before { content: "e.g. Thank you for your business. Payment due within 15 days."; color: #6c757d; }
+#footprintEditor .fp-sm, .invoice-footprint .fp-sm { font-size: .8em; }
+#footprintEditor .fp-lg, .invoice-footprint .fp-lg { font-size: 1.3em; }
+#footprintEditor .fp-xl, .invoice-footprint .fp-xl { font-size: 1.7em; }

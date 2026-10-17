@@ -3,6 +3,7 @@ using EBill.Data;
 using EBill.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Ganss.Xss;
 using Microsoft.EntityFrameworkCore;
 
 namespace EBill.Controllers
@@ -90,6 +91,84 @@ namespace EBill.Controllers
 
             TempData["NumberingSaved"] = true;
             return RedirectToAction(nameof(Index));
+        }
+
+        private const int FootprintMaxLength = 4000;
+
+        // Saves the rich-text invoice footer. The HTML comes from a browser editor, so
+        // it is never trusted: it is run through an allow-list sanitizer (formatting
+        // tags only - no scripts, styles, images or event handlers) before storing,
+        // which is what makes rendering it with Html.Raw on the invoice safe.
+        // A blank/empty editor clears the footer.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateInvoiceFootprint(string? invoiceFootprint)
+        {
+            var companyIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(companyIdClaim, out var companyId))
+            {
+                return Unauthorized();
+            }
+
+            var clean = SanitizeFootprint(invoiceFootprint);
+
+            if (clean is not null && clean.Length > FootprintMaxLength)
+            {
+                TempData["FootprintError"] = $"Footer is too long (max {FootprintMaxLength} characters including formatting).";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var settings = await _db.Settings.FirstOrDefaultAsync(s => s.CompanyId == companyId);
+            if (settings is null)
+            {
+                settings = new Settings { CompanyId = companyId };
+                _db.Settings.Add(settings);
+            }
+
+            settings.InvoiceFootprint = clean;
+            await _db.SaveChangesAsync();
+
+            TempData["FootprintSaved"] = true;
+            return RedirectToAction(nameof(Index));
+        }
+
+        public static string? SanitizeFootprint(string? html)
+        {
+            if (string.IsNullOrWhiteSpace(html))
+            {
+                return null;
+            }
+
+            // Formatting is carried by tags/classes/attributes rather than inline
+            // styles: size = fp-sm/fp-lg/fp-xl classes (defined in site.css), color =
+            // <font color>, alignment = align attribute. Inline style is not allowed.
+            var sanitizer = new HtmlSanitizer();
+            sanitizer.AllowedTags.Clear();
+            foreach (var tag in new[] { "p", "br", "div", "span", "strong", "b", "em", "i", "u", "ul", "ol", "li", "a", "h3", "h4", "small", "font" })
+            {
+                sanitizer.AllowedTags.Add(tag);
+            }
+            sanitizer.AllowedAttributes.Clear();
+            foreach (var attr in new[] { "href", "class", "color", "align" })
+            {
+                sanitizer.AllowedAttributes.Add(attr);
+            }
+            sanitizer.AllowedClasses.Clear();
+            foreach (var cls in new[] { "fp-sm", "fp-lg", "fp-xl" })
+            {
+                sanitizer.AllowedClasses.Add(cls);
+            }
+            sanitizer.AllowedCssProperties.Clear();
+            sanitizer.AllowedSchemes.Clear();
+            sanitizer.AllowedSchemes.Add("http");
+            sanitizer.AllowedSchemes.Add("https");
+            sanitizer.AllowedSchemes.Add("mailto");
+
+            var clean = sanitizer.Sanitize(html).Trim();
+
+            // Nothing visible left (e.g. only empty paragraphs) - treat as cleared.
+            var textOnly = System.Text.RegularExpressions.Regex.Replace(clean, "<[^>]*>|&nbsp;", " ");
+            return string.IsNullOrWhiteSpace(textOnly) ? null : clean;
         }
     }
 }

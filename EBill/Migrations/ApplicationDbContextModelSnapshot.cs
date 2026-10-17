@@ -354,6 +354,9 @@ namespace EBill.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("InvoiceFootprint")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsSynced")
                         .HasColumnType("bit");
 

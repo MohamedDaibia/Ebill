@@ -62,6 +62,13 @@ namespace EBill.Models
         [Display(Name = "Start With Purchase Order Number")]
         public int? NextPurchaseOrderNumber { get; set; }
 
+        // Rich-text (HTML) footer printed at the bottom of every invoice. Written by
+        // the Invoice Footprint editor on the Settings page and always sanitized
+        // server-side (see SettingsController.UpdateInvoiceFootprint) before it is
+        // stored, so it is safe to render with Html.Raw.
+        [ValidateNever]
+        public string? InvoiceFootprint { get; set; }
+
         [ValidateNever]
         public DateTime CreatedDate { get; set; }
 

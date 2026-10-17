@@ -206,7 +206,7 @@ namespace EBill.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(int? days)
+        public async Task<IActionResult> Index(int? days, int? customerId)
         {
             int? Companyid = GetCompanyId();
             var query = _db.Invoices
@@ -214,6 +214,16 @@ namespace EBill.Controllers
                 .Include(i => i.Products)
                 .Include(i => i.Taxes).Where(i => i.Customer.CompanyId == Companyid)
                 .AsQueryable();
+
+            string? customerName = null;
+            if (customerId.HasValue)
+            {
+                query = query.Where(i => i.CustomerId == customerId.Value);
+                customerName = await _db.Customers
+                    .Where(c => c.Id == customerId.Value && c.CompanyId == Companyid)
+                    .Select(c => c.Name)
+                    .FirstOrDefaultAsync();
+            }
 
             if (days.HasValue && days.Value > 0)
             {
@@ -227,6 +237,8 @@ namespace EBill.Controllers
                 .ToListAsync();
 
             ViewData["SelectedDays"] = days;
+            ViewData["CustomerId"] = customerId;
+            ViewData["CustomerName"] = customerName;
             return View(invoices);
         }
 
@@ -427,6 +439,12 @@ namespace EBill.Controllers
             }
 
             ViewData["Company"] = company;
+            ViewData["InvoiceFootprint"] = company is null
+                ? null
+                : (await _db.Settings.AsNoTracking()
+                    .Where(st => st.CompanyId == company.Id)
+                    .Select(st => st.InvoiceFootprint)
+                    .FirstOrDefaultAsync());
 
             // "Next"/"Previous" step through invoices in creation order (by Id),
             // which lines up with BillNumber since it's generated the same way.

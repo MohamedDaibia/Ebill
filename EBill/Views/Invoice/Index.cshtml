@@ -3,6 +3,8 @@
     ViewData["Title"] = "Invoices";
     int? selectedDays = ViewData["SelectedDays"] as int?;
     var presetDays = new[] { 1, 7, 30, 90 };
+    int? customerId = ViewData["CustomerId"] as int?;
+    var customerName = ViewData["CustomerName"] as string;
     var customValue = (selectedDays.HasValue && !presetDays.Contains(selectedDays.Value)) ? selectedDays : null;
 }
 
@@ -11,7 +13,14 @@
         <span class="icon-badge icon-badge--green">&#128203;</span>
         <div>
             <h1 class="mb-0">Invoices</h1>
-                <p class="text-muted mb-0">Browse your invoices, filtered by date.</p>            
+                @if (customerId.HasValue)
+            {
+                <p class="text-muted mb-0">Invoices for <strong>@customerName</strong>. <a asp-controller="Invoice" asp-action="Index">Show all customers</a> &middot; <a asp-controller="Customers" asp-action="Index">Back to Customers</a></p>
+            }
+            else
+            {
+                <p class="text-muted mb-0">Browse your invoices, filtered by date.</p>
+            }
         </div>
     </div>
     <a asp-controller="Invoice" asp-action="Create" class="btn btn-outline-secondary btn-sm mt-1">+ New Invoice</a>
@@ -19,14 +28,18 @@
 
 <div class="form-card mt-3">
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3 invoice-filter-bar">
-        <a asp-action="Index" class="btn btn-sm @(selectedDays is null ? "btn-primary" : "btn-outline-secondary")">All Time</a>
-        <a asp-action="Index" asp-route-days="1" class="btn btn-sm @(selectedDays == 1 ? "btn-primary" : "btn-outline-secondary")">Today</a>
-        <a asp-action="Index" asp-route-days="7" class="btn btn-sm @(selectedDays == 7 ? "btn-primary" : "btn-outline-secondary")">Last 7 Days</a>
-        <a asp-action="Index" asp-route-days="30" class="btn btn-sm @(selectedDays == 30 ? "btn-primary" : "btn-outline-secondary")">Last 30 Days</a>
-        <a asp-action="Index" asp-route-days="90" class="btn btn-sm @(selectedDays == 90 ? "btn-primary" : "btn-outline-secondary")">Last 90 Days</a>
+        <a asp-action="Index" asp-route-customerId="@customerId" class="btn btn-sm @(selectedDays is null ? "btn-primary" : "btn-outline-secondary")">All Time</a>
+        <a asp-action="Index" asp-route-customerId="@customerId" asp-route-days="1" class="btn btn-sm @(selectedDays == 1 ? "btn-primary" : "btn-outline-secondary")">Today</a>
+        <a asp-action="Index" asp-route-customerId="@customerId" asp-route-days="7" class="btn btn-sm @(selectedDays == 7 ? "btn-primary" : "btn-outline-secondary")">Last 7 Days</a>
+        <a asp-action="Index" asp-route-customerId="@customerId" asp-route-days="30" class="btn btn-sm @(selectedDays == 30 ? "btn-primary" : "btn-outline-secondary")">Last 30 Days</a>
+        <a asp-action="Index" asp-route-customerId="@customerId" asp-route-days="90" class="btn btn-sm @(selectedDays == 90 ? "btn-primary" : "btn-outline-secondary")">Last 90 Days</a>
 
         <form asp-action="Index" method="get" class="d-flex align-items-center gap-2 ms-sm-auto">
             <label for="customDays" class="text-muted small mb-0">Last</label>
+            @if (customerId.HasValue)
+            {
+                <input type="hidden" name="customerId" value="@customerId" />
+            }
             <input type="number" id="customDays" name="days" min="1" class="form-control form-control-sm" style="width: 80px;" placeholder="N" value="@customValue" />
             <label for="customDays" class="text-muted small mb-0">days</label>
             <button type="submit" class="btn btn-sm btn-outline-secondary">Go</button>

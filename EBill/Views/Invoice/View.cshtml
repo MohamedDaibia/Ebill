@@ -220,6 +220,14 @@
         <p class="fw-semibold">@NumberToWords.ConvertAmountToWords(grandTotal)</p>
     </div>
 
+    @if (ViewData["InvoiceFootprint"] is string footprintHtml && !string.IsNullOrWhiteSpace(footprintHtml))
+    {
+        @* Sanitized on save (SettingsController.SanitizeFootprint), so safe to render raw. *@
+        <div class="mt-4 d-flex justify-content-end">
+            <div class="invoice-footprint text-end">@Html.Raw(footprintHtml)</div>
+        </div>
+    }
+
     <div class="mt-4 pt-3 border-top">
         <p class="mb-2 fw-semibold" style="color: #d91f1f">No Return</p>
         <p class="mb-0 text-muted">
