@@ -195,7 +195,7 @@
                     <tr>
                         <td class="align-middle">Amount Paid</td>
                         <td class="text-end">
-                            @if (isReadOnly)
+                            @if (isReadOnly || !User.IsInRole(EBill.Models.UserRoles.Admin))
                             {
                                 <span>&#8377; @MoneyFormat.Format(amountPaidDisplay)</span>
                             }
@@ -247,6 +247,11 @@
     @if (isReadOnly)
     {
         <a asp-controller="Accounting" asp-action="Index" asp-route-id="@accountingLinkId" class="btn btn-outline-secondary">&larr; Back to Report</a>
+        <button type="button" id="printBtn" class="btn btn-outline-secondary">Print</button>
+    }
+    else if (!User.IsInRole(EBill.Models.UserRoles.Admin))
+    {
+        <a asp-controller="Invoice" asp-action="Index" class="btn btn-outline-secondary">&larr; Back to Ledger</a>
         <button type="button" id="printBtn" class="btn btn-outline-secondary">Print</button>
     }
     else

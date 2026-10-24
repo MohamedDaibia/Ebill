@@ -1,4 +1,5 @@
 using EBill.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
@@ -16,6 +17,13 @@ namespace EBill.Controllers
         public IActionResult Index()
         {
             return View(new Company());
+        }
+
+        // Landing page after login: pick Ledger or Invoice.
+        [Authorize(Roles = UserRoles.Admin)]
+        public IActionResult Dashboard()
+        {
+            return View();
         }
 
         public IActionResult Privacy()

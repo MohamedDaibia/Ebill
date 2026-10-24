@@ -1,0 +1,83 @@
+@using EBill.Helpers
+@model List<EBill.Models.LedgerCustomerRow>
+@{
+    ViewData["Title"] = "Ledger";
+}
+
+<div class="page-heading">
+    <span class="icon-badge icon-badge--green">&#128210;</span>
+    <div>
+        <h1 class="mb-0">Ledger</h1>
+        <p class="text-muted mb-0">Amount credited, debited and outstanding for each customer.</p>
+    </div>
+</div>
+
+@{
+    var query = ViewData["Query"] as string;
+}
+
+<form asp-controller="Ledger" asp-action="Index" method="get" class="mt-3" role="search">
+    <div class="input-group" style="max-width: 560px;">
+        <input type="search" name="q" value="@query" class="form-control" placeholder="Search by name, address, district or state" aria-label="Search customers" />
+        <button type="submit" class="btn btn-primary">Search</button>
+        @if (!string.IsNullOrEmpty(query))
+        {
+            <a asp-controller="Ledger" asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+        }
+    </div>
+</form>
+
+<div class="form-card mt-3">
+    <div class="table-responsive">
+        <table class="table align-middle invoice-list-table">
+            <thead>
+                <tr style="background-color: var(--brand-green-light);">
+                    <th>Customer Name</th>
+                    <th>Address</th>
+                    <th class="text-end">Total Amount Credited</th>
+                    <th class="text-end">Total Amount Debited</th>
+                    <th class="text-end">Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">@(string.IsNullOrEmpty(query) ? "No customers yet." : "No customers match your search.")</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var row in Model)
+                    {
+                        <tr class="ledger-row" data-href="@Url.Action("Details", "Ledger", new { id = row.CustomerId })" style="cursor: pointer;">
+                            <td><a asp-controller="Ledger" asp-action="Details" asp-route-id="@row.CustomerId" class="text-decoration-none fw-semibold">@row.Name</a></td>
+                            <td>
+                                @row.Address
+                                @if (!string.IsNullOrWhiteSpace(row.District) || !string.IsNullOrWhiteSpace(row.State))
+                                {
+                                    <div class="text-muted small">@string.Join(", ", new[] { row.District, row.State }.Where(x => !string.IsNullOrWhiteSpace(x)))</div>
+                                }
+                            </td>
+                            <td class="text-end">&#8377;@MoneyFormat.Format(row.TotalCredited)</td>
+                            <td class="text-end">&#8377;@MoneyFormat.Format(row.TotalDebited)</td>
+                            <td class="text-end fw-semibold">&#8377;@MoneyFormat.Format(row.Balance)</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Whole row is clickable (the name is a real link too, for keyboard/middle-click).
+        document.querySelectorAll('tr.ledger-row').forEach(function (row) {
+            row.addEventListener('click', function (e) {
+                if (e.target.closest('a')) { return; }
+                window.location.href = row.getAttribute('data-href');
+            });
+        });
+    </script>
+}

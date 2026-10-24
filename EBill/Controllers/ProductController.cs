@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EBill.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = UserRoles.Admin)]
     public class ProductController : Controller
     {
         private readonly ApplicationDbContext _db;

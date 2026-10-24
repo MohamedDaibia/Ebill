@@ -22,10 +22,15 @@ if (builder.Environment.IsDevelopment())
     mvcBuilder.AddRazorRuntimeCompilation();
 }
 
+// Lets ApplicationDbContext read the logged-in user's name (ledger rows created by
+// the invoice hook record who did it).
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IPasswordHasher<Company>, PasswordHasher<Company>>();
+builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<EbillConnectService>();
 builder.Services.AddScoped<IDispatchService, DispatchService>();

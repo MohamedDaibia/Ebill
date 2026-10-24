@@ -56,6 +56,78 @@
             </form>
         </div>
 
+        @if (User.IsInRole(EBill.Models.UserRoles.Admin))
+        {
+            var users = ViewBag.Users as List<EBill.Models.AppUser> ?? new List<EBill.Models.AppUser>();
+            <div class="form-card mt-3">
+                <h2 class="h5 mb-3">Users</h2>
+                <p class="text-muted small">Create logins for your team. Admin has full access, Accountant handles accounts and ledger, Sales handles customers, quotations and invoices.</p>
+
+                @if (TempData["UserSaved"] != null)
+                {
+                    <div class="alert alert-success" role="alert">@TempData["UserSaved"]</div>
+                }
+                @if (TempData["UserError"] != null)
+                {
+                    <div class="alert alert-danger" role="alert">@TempData["UserError"]</div>
+                }
+
+                <form asp-controller="Settings" asp-action="CreateUser" method="post" class="row g-3" autocomplete="off">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-6">
+                        <label for="userName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="userName" name="name" maxlength="200" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="userEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="userEmail" name="email" maxlength="256" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="userPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="userPassword" name="password" minlength="8" maxlength="100" autocomplete="new-password" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="userRole" class="form-label">Role</label>
+                        <select class="form-select" id="userRole" name="role" required>
+                            @foreach (var r in EBill.Models.UserRoles.All)
+                            {
+                                <option value="@r">@r</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Create User</button>
+                    </div>
+                </form>
+
+                @if (users.Count > 0)
+                {
+                    <div class="table-responsive mt-4">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var u in users)
+                                {
+                                    <tr>
+                                        <td>@u.Name</td>
+                                        <td>@u.Email</td>
+                                        <td>@u.Role</td>
+                                        <td>@(u.IsActive ? "Active" : "Disabled")</td>
+                                        <td class="text-end">
+                                            <form asp-controller="Settings" asp-action="ToggleUser" asp-route-id="@u.Id" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary">@(u.IsActive ? "Disable" : "Enable")</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
+
         <div class="form-card mt-3">
             <h2 class="h5 mb-3">Invoice Footprint</h2>
             <p class="text-muted small">

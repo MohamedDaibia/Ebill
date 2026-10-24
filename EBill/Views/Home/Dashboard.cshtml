@@ -1,0 +1,30 @@
+@{
+    ViewData["Title"] = "Select";
+}
+
+<div class="dash-wrap">
+    <h2 class="dash-title">What would you like to open?</h2>
+    <div class="dash-cards">
+        <a class="dash-card" asp-controller="Ledger" asp-action="Index">
+            <span class="dash-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h12a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3V4z"></path>
+                    <path d="M4 17a3 3 0 0 1 3-3h12"></path>
+                    <line x1="9" y1="8" x2="15" y2="8"></line>
+                </svg>
+            </span>
+            <span class="dash-name">Ledger</span>
+        </a>
+        <a class="dash-card" asp-controller="Invoice" asp-action="Create">
+            <span class="dash-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 3 14 8 19 8"></polyline>
+                    <line x1="9" y1="13" x2="15" y2="13"></line>
+                    <line x1="9" y1="17" x2="13" y2="17"></line>
+                </svg>
+            </span>
+            <span class="dash-name">Invoice</span>
+        </a>
+    </div>
+</div>

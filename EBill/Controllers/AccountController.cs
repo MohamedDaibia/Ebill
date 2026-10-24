@@ -11,6 +11,7 @@ namespace EBill.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly IPasswordHasher<Company> _passwordHasher;
+        private readonly IPasswordHasher<AppUser> _userPasswordHasher;
         private readonly JwtTokenService _tokenService;
         private readonly EbillConnectService _connectService;
         private readonly IEmailSender _emailSender;
@@ -18,12 +19,14 @@ namespace EBill.Controllers
         public AccountController(
             ApplicationDbContext db,
             IPasswordHasher<Company> passwordHasher,
+            IPasswordHasher<AppUser> userPasswordHasher,
             JwtTokenService tokenService,
             EbillConnectService connectService,
             IEmailSender emailSender)
         {
             _db = db;
             _passwordHasher = passwordHasher;
+            _userPasswordHasher = userPasswordHasher;
             _tokenService = tokenService;
             _connectService = connectService;
             _emailSender = emailSender;
@@ -70,10 +73,26 @@ namespace EBill.Controllers
             }
 
             var company = await _db.Companies.FirstOrDefaultAsync(c => c.Email == model.Email);
+            AppUser? subUser = null;
 
             var passwordOk = company is not null &&
                 _passwordHasher.VerifyHashedPassword(company, company.PasswordHash, model.Password)
                     != PasswordVerificationResult.Failed;
+
+            // Not a company owner? Try a sub-user (Admin/Accountant/Sales) created in Settings.
+            if (!passwordOk)
+            {
+                subUser = await _db.AppUsers.Include(u => u.Company)
+                    .FirstOrDefaultAsync(u => u.Email == model.Email && u.IsActive);
+
+                if (subUser is not null &&
+                    _userPasswordHasher.VerifyHashedPassword(subUser, subUser.PasswordHash, model.Password)
+                        != PasswordVerificationResult.Failed)
+                {
+                    company = subUser.Company;
+                    passwordOk = company is not null;
+                }
+            }
 
             if (!passwordOk)
             {
@@ -81,7 +100,7 @@ namespace EBill.Controllers
                 return View(model);
             }
 
-            var token = _tokenService.GenerateToken(company!);
+            var token = _tokenService.GenerateToken(company!, subUser);
 
             Response.Cookies.Append("AuthToken", token, new CookieOptions
             {
@@ -93,13 +112,16 @@ namespace EBill.Controllers
 
             // "Connect" flow: hand the Ebill company id + a fresh refresh token back
             // to whichever app sent the user here, instead of going to the invoice screen.
-            if (_connectService.IsAllowedReturnUrl(model.ReturnUrl))
+            if (subUser is null && _connectService.IsAllowedReturnUrl(model.ReturnUrl))
             {
                 var redirectUrl = await _connectService.IssueTokenAndBuildRedirectUrlAsync(company!, model.ReturnUrl!, model.StockCompanyId);
                 return Redirect(redirectUrl);
             }
 
-            return RedirectToAction("Create", "Invoice");
+            // Admin picks Ledger/Invoice; every other role goes straight to the Ledger page.
+            return subUser is null || subUser.Role == UserRoles.Admin
+                ? RedirectToAction("Dashboard", "Home")
+                : RedirectToAction("Index", "Ledger");
         }
 
         public IActionResult Logout()

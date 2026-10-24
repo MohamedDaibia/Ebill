@@ -12,7 +12,7 @@ namespace EBill.Controllers
     // (plural), distinct from the existing api/Customer/Search endpoint
     // (Controllers/CustomerController.cs, used server-to-server by Stock Management) -
     // same underlying Customer data, two different consumers.
-    [Authorize]
+    [Authorize(Roles = UserRoles.Admin)]
     public class CustomersController : Controller
     {
         private readonly ApplicationDbContext _db;
@@ -134,6 +134,8 @@ namespace EBill.Controllers
             customer.Name = model.Name;
             customer.PhoneNumber = model.PhoneNumber;
             customer.Address = model.Address;
+            customer.State = model.State;
+            customer.District = model.District;
             customer.Gstin = model.Gstin;
 
             await _db.SaveChangesAsync();

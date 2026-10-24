@@ -1,3 +1,4 @@
+@using EBill.Models
 @model List<EBill.Models.Invoice>
 @{
     ViewData["Title"] = "Invoices";
@@ -15,7 +16,7 @@
             <h1 class="mb-0">Invoices</h1>
                 @if (customerId.HasValue)
             {
-                <p class="text-muted mb-0">Invoices for <strong>@customerName</strong>. <a asp-controller="Invoice" asp-action="Index">Show all customers</a> &middot; <a asp-controller="Customers" asp-action="Index">Back to Customers</a></p>
+                <p class="text-muted mb-0">Invoices for <strong>@customerName</strong>. <a asp-controller="Invoice" asp-action="Index">Show all customers</a>@if (User.IsInRole(UserRoles.Admin)) { <text> &middot; <a asp-controller="Customers" asp-action="Index">Back to Customers</a></text> }</p>
             }
             else
             {
@@ -23,7 +24,10 @@
             }
         </div>
     </div>
-    <a asp-controller="Invoice" asp-action="Create" class="btn btn-outline-secondary btn-sm mt-1">+ New Invoice</a>
+    @if (User.IsInRole(UserRoles.Admin))
+    {
+        <a asp-controller="Invoice" asp-action="Create" class="btn btn-outline-secondary btn-sm mt-1">+ New Invoice</a>
+    }
 </div>
 
 <div class="form-card mt-3">
@@ -45,11 +49,14 @@
             <button type="submit" class="btn btn-sm btn-outline-secondary">Go</button>
         </form>
 
+            @if (User.IsInRole(UserRoles.Admin))
+            {
             <form asp-controller="Invoice" asp-action="Accounting" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="days" value="@selectedDays" />
                 <button type="submit" class="btn btn-sm btn-primary" title="Get a shareable report link for @(selectedDays is null ? "all invoices" : $"the last {selectedDays} day(s)")">Accounting</button>
-            </form>       
+            </form>
+            }
     </div>
 
     <div class="table-responsive">
@@ -96,7 +103,10 @@
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
                                     <a asp-controller="Invoice" asp-action="View" asp-route-id="@invoice.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                                    @if (User.IsInRole(UserRoles.Admin))
+                                    {
                                     <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteInvoiceModal" data-invoice-id="@invoice.Id" data-bill-number="@invoice.DisplayBillNumber" title="Delete invoice">Delete</button>
+                                    }
                                 </div>
                             </td>
                         </tr>

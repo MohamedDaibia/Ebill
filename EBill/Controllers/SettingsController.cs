@@ -2,6 +2,7 @@ using System.Security.Claims;
 using EBill.Data;
 using EBill.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Ganss.Xss;
 using Microsoft.EntityFrameworkCore;
@@ -17,14 +18,16 @@ namespace EBill.Controllers
     //
     // Also hosts the document auto-numbering settings (UpdateNumbering below) -
     // unrelated to the Stock Management connection, just kept on the same page.
-    [Authorize]
+    [Authorize(Roles = UserRoles.Admin)]
     public class SettingsController : Controller
     {
         private readonly ApplicationDbContext _db;
+        private readonly IPasswordHasher<AppUser> _userPasswordHasher;
 
-        public SettingsController(ApplicationDbContext db)
+        public SettingsController(ApplicationDbContext db, IPasswordHasher<AppUser> userPasswordHasher)
         {
             _db = db;
+            _userPasswordHasher = userPasswordHasher;
         }
 
         [HttpGet]
@@ -38,7 +41,88 @@ namespace EBill.Controllers
 
             var settings = await _db.Settings.FirstOrDefaultAsync(s => s.CompanyId == companyId);
 
+            if (User.IsInRole(UserRoles.Admin))
+            {
+                ViewBag.Users = await _db.AppUsers
+                    .Where(u => u.CompanyId == companyId)
+                    .OrderBy(u => u.Name)
+                    .ToListAsync();
+            }
+
             return View(settings ?? new Settings { CompanyId = companyId });
+        }
+
+        // ---- User management (Admin only) ----
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = UserRoles.Admin)]
+        public async Task<IActionResult> CreateUser(string? name, string? email, string? password, string? role)
+        {
+            if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var companyId))
+            {
+                return Unauthorized();
+            }
+
+            name = name?.Trim();
+            email = email?.Trim();
+
+            if (string.IsNullOrWhiteSpace(name) || name.Length < 2 || name.Length > 200)
+            {
+                TempData["UserError"] = "Enter a name (2-200 characters).";
+            }
+            else if (string.IsNullOrWhiteSpace(email) || email.Length > 256
+                     || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email))
+            {
+                TempData["UserError"] = "Enter a valid email address.";
+            }
+            else if (string.IsNullOrEmpty(password) || password.Length < 8 || password.Length > 100
+                     || !password.Any(char.IsLower) || !password.Any(char.IsUpper) || !password.Any(char.IsDigit))
+            {
+                TempData["UserError"] = "Password must be at least 8 characters with an uppercase letter, a lowercase letter and a digit.";
+            }
+            else if (role is null || !UserRoles.All.Contains(role))
+            {
+                TempData["UserError"] = "Choose a valid role.";
+            }
+            else if (await _db.Companies.AnyAsync(c => c.Email == email) || await _db.AppUsers.AnyAsync(u => u.Email == email))
+            {
+                TempData["UserError"] = "That email is already in use.";
+            }
+
+            if (TempData["UserError"] != null)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
+            var user = new AppUser { CompanyId = companyId, Name = name!, Email = email!, Role = role! };
+            user.PasswordHash = _userPasswordHasher.HashPassword(user, password!);
+            _db.AppUsers.Add(user);
+            await _db.SaveChangesAsync();
+
+            TempData["UserSaved"] = $"User {user.Name} created as {user.Role}.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = UserRoles.Admin)]
+        public async Task<IActionResult> ToggleUser(int id)
+        {
+            if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var companyId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _db.AppUsers.FirstOrDefaultAsync(u => u.Id == id && u.CompanyId == companyId);
+            if (user is null)
+            {
+                return NotFound();
+            }
+
+            user.IsActive = !user.IsActive;
+            await _db.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
         // Saves the "next number" counters for Invoice/Quotation/Purchase Order

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EBill.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = UserRoles.Admin)]
     public class InvoiceController : Controller
     {
         private readonly ApplicationDbContext _db;
@@ -20,6 +20,7 @@ namespace EBill.Controllers
             _dispatchService = dispatchService;
         }
 
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpGet]
         public IActionResult Create()
         {
@@ -32,6 +33,7 @@ namespace EBill.Controllers
         // customer is already known; this page instead shows what Stock Management
         // dispatched to them on the selected date (see IDispatchService/
         // DispatchService) so an invoice can be built straight from that.
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpGet]
         public async Task<IActionResult> CreateFromCustomer(int customerId, DateTime? date)
         {
@@ -78,6 +80,7 @@ namespace EBill.Controllers
         // "items still to bill"). Reuses the same view model and IDispatchService
         // lookup as CreateFromCustomer since the underlying data (and date paging) is
         // identical - just filtered the other way.
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpGet]
         public async Task<IActionResult> InvoicedItems(int customerId, DateTime? date)
         {
@@ -122,6 +125,7 @@ namespace EBill.Controllers
         // the invoice - re-fetching would silently discard those edits. Same trust
         // level as ProductController.Add's manual line-item entry: both accept
         // whatever an authenticated company posts for its own invoice.
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateFromDispatch(int customerId, DateTime date, List<DispatchLineItemInput> items)
@@ -242,6 +246,7 @@ namespace EBill.Controllers
             return View(invoices);
         }
 
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Accounting(int? days)
@@ -268,6 +273,7 @@ namespace EBill.Controllers
             return RedirectToAction("Index", "Accounting", new { id = link.Id });
         }
 
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id, int? days, int? customerId)
@@ -304,6 +310,7 @@ namespace EBill.Controllers
             return RedirectToAction(nameof(Index), new { days, customerId });
         }
 
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Customer model)
@@ -360,6 +367,7 @@ namespace EBill.Controllers
             return RedirectToAction("Index", "Product", new { invoiceId = invoice.Id });
         }
   
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateFromQuotation(int quotationId)
@@ -463,6 +471,7 @@ namespace EBill.Controllers
             return View(invoice);
         }
 
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdatePayment(int id, decimal amountPaid)
@@ -487,6 +496,7 @@ namespace EBill.Controllers
             return Ok(new { success = true, amountPaid = invoice.AmountPaid, paymentStatus = invoice.PaymentStatus.ToString() });
         }
 
+        [Authorize(Roles = UserRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkEmailed(int id)

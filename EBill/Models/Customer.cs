@@ -31,6 +31,18 @@ namespace EBill.Models
         [StringLength(500, ErrorMessage = "Address cannot exceed 500 characters.")]
         public string? Address { get; set; }
 
+        [StringLength(100, ErrorMessage = "State cannot exceed 100 characters.")]
+        public string? State { get; set; }
+
+        [StringLength(100, ErrorMessage = "District cannot exceed 100 characters.")]
+        public string? District { get; set; }
+
+        // Google Maps embed URL shown on the ledger's Customer Details page (set there by
+        // an Admin). When empty, the page falls back to a map search on the address.
+        [ValidateNever]
+        [StringLength(1000)]
+        public string? MapLink { get; set; }
+
         // Mandatory, and unique per company (see ApplicationDbContext's unique index on
         // (CompanyId, PhoneNumber)) - the same phone number can belong to different
         // customers of different companies, just not twice within one company's own

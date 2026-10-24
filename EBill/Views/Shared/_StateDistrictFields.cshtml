@@ -1,0 +1,64 @@
+@using EBill.Helpers
+@model EBill.Models.Customer
+@*
+    State -> District dropdowns for the customer forms. The district list follows the
+    chosen state (data: Helpers/IndiaLocations.cs). A value already saved on the customer
+    that isn't in the list is kept as an extra option so editing never loses it.
+*@
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="State" class="form-label"></label>
+        <select asp-for="State" class="form-select" id="State">
+            <option value="">Select state</option>
+            @foreach (var state in IndiaLocations.StateDistricts.Keys)
+            {
+                <option value="@state" selected="@(state == Model.State)">@state</option>
+            }
+            @if (!string.IsNullOrEmpty(Model.State) && !IndiaLocations.StateDistricts.ContainsKey(Model.State))
+            {
+                <option value="@Model.State" selected="selected">@Model.State</option>
+            }
+        </select>
+        <span asp-validation-for="State" class="text-danger"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="District" class="form-label"></label>
+        <select asp-for="District" class="form-select" id="District" data-selected="@Model.District">
+            <option value="">Select district</option>
+        </select>
+        <span asp-validation-for="District" class="text-danger"></span>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var data = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(IndiaLocations.StateDistricts));
+        var stateSelect = document.getElementById('State');
+        var districtSelect = document.getElementById('District');
+
+        function fillDistricts(selected) {
+            var districts = data[stateSelect.value] || [];
+            districtSelect.innerHTML = '';
+
+            var placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = stateSelect.value ? 'Select district' : 'Select state first';
+            districtSelect.appendChild(placeholder);
+
+            if (selected && districts.indexOf(selected) === -1) {
+                districts = districts.concat([selected]);
+            }
+
+            districts.forEach(function (d) {
+                var opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = d;
+                if (d === selected) { opt.selected = true; }
+                districtSelect.appendChild(opt);
+            });
+        }
+
+        stateSelect.addEventListener('change', function () { fillDistricts(''); });
+        fillDistricts(districtSelect.getAttribute('data-selected'));
+    })();
+</script>

@@ -15,7 +15,8 @@ namespace EBill.Services
             _configuration = configuration;
         }
 
-        public string GenerateToken(Company company)
+        // Company owner logs in as Admin; a sub-user (AppUser) carries their own role/name.
+        public string GenerateToken(Company company, AppUser? user = null)
         {
             var jwtSection = _configuration.GetSection("Jwt");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["Key"]!));
@@ -24,8 +25,9 @@ namespace EBill.Services
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, company.Id.ToString()),
-                new Claim(ClaimTypes.Email, company.Email),
-                new Claim(ClaimTypes.Name, company.CompanyName),
+                new Claim(ClaimTypes.Email, user?.Email ?? company.Email),
+                new Claim(ClaimTypes.Name, user?.Name ?? company.CompanyName),
+                new Claim(ClaimTypes.Role, user?.Role ?? UserRoles.Admin),
             };
 
             var expiresMinutes = int.Parse(jwtSection["ExpiresMinutes"] ?? "60");
